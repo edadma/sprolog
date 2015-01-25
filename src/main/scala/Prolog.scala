@@ -109,7 +109,7 @@ object Prolog
 	
 		for (e <- eqs)
 		{
-			code += PutStructureInstruction( e._2.f, e._2.arity, e._1 )
+			code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 			seen += e._1
 			
 			for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
@@ -136,7 +136,7 @@ object Prolog
 	
 		for (e <- regmap.toSeq.sortWith( (a, b) => a._1 < b._1 ))
 		{
-			code += GetStructureInstruction( e._2.f, e._2.arity, e._1 )
+			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 			seen += e._1
 			
 			for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])

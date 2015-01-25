@@ -12,7 +12,7 @@ class WAM
 	var s: Addr = _
 	var fail = false
 	var mode = 'read
-	var trace = false
+	val trace = false
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -70,9 +70,9 @@ class WAM
 	{
 		inst match
 		{
-			case PutStructureInstruction( f, n, i ) =>
+			case PutStructureInstruction( f, i ) =>
 				put( h, str(h + 1) )
-				put( h + 1, FunCell(f, n) )
+				put( h + 1, f )
 				put( x, i, h.read )
 				h += 2
 			case SetVariableInstruction( i ) =>
@@ -82,19 +82,19 @@ class WAM
 			case SetValueInstruction( i ) =>
 				put( h, x(i) )
 				h += 1
-			case GetStructureInstruction( f, n, i ) =>
+			case GetStructureInstruction( f, i ) =>
 				val addr = deref( x, i )
 				
 				addr.read match
 				{
 					case PtrCell( 'ref, _ ) =>
 						put( h, str(h + 1) )
-						put( h + 1, FunCell(f, n) )
+						put( h + 1, f )
 						bind( addr, h )
 						h += 2
 						mode = 'write
 					case PtrCell( 'str, a ) =>
-						if (a.read == FunCell( f, n ))
+						if (a.read == f)
 						{
 							s = a + 1
 							mode = 'read
@@ -151,9 +151,9 @@ class WAM
 	def bind( a1: Addr, a2: Addr )
 	{
 		if (unbound( a1 ))
-			put( a1, PtrCell('ref, a2) )
+			put( a1, ref(a2) )
 		else if (unbound( a2 ))
-			put( a2, PtrCell('ref, a1) )
+			put( a2, ref(a1) )
 		else
 			sys.error( "neither address is unbound" )
 	}
@@ -182,13 +182,11 @@ class WAM
 				val f2 = v2.read
 				
 					if (f1 == f2)
-					{
 						for (i <- 1 to n)
 						{
 							pdl push (v1 + i)
 							pdl push (v2 + i)
 						}
-					}
 					else
 						fail = true
 				}
@@ -199,12 +197,10 @@ class WAM
 
 trait Instruction
 
-// add FunCell to PutStructureInstruction and GetStructureInstruction
-
-case class PutStructureInstruction( f: Symbol, n: Int, i: Int ) extends Instruction
+case class PutStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class SetVariableInstruction( i: Int ) extends Instruction
 case class SetValueInstruction( i: Int ) extends Instruction
-case class GetStructureInstruction( f: Symbol, n: Int, i: Int ) extends Instruction
+case class GetStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class UnifyVariableInstruction( i: Int ) extends Instruction
 case class UnifyValueInstruction( i: Int ) extends Instruction
 
