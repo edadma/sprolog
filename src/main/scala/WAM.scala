@@ -124,6 +124,17 @@ class WAM
 				}
 				
 				s += 1
+			case PutVariableInstruction( n, i ) =>
+				put( h, ref(h) )
+				put( x, n, h.read )
+				put( x, i, h.read )
+				h += 1
+			case PutValueInstruction( n, i ) =>
+				put( x, i, x(n) )
+			case GetVariableInstruction( n, i ) =>
+				put( x, n, x(i) )
+			case GetValueInstruction( n, i ) =>
+				unify( new Addr(x, n), new Addr(x, i) )
 		}
 		
 		if (trace)
@@ -203,6 +214,10 @@ case class SetValueInstruction( i: Int ) extends Instruction
 case class GetStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class UnifyVariableInstruction( i: Int ) extends Instruction
 case class UnifyValueInstruction( i: Int ) extends Instruction
+case class PutVariableInstruction( n: Int, i: Int ) extends Instruction
+case class PutValueInstruction( n: Int, i: Int ) extends Instruction
+case class GetVariableInstruction( n: Int, i: Int ) extends Instruction
+case class GetValueInstruction( n: Int, i: Int ) extends Instruction
 
 trait Cell
 
