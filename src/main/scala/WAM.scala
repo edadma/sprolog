@@ -1,6 +1,6 @@
 package ca.hyperreal.swam
 
-import collection.mutable.{ArrayBuffer, Buffer, ArrayStack}
+import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 
 
 class WAM
@@ -13,6 +13,9 @@ class WAM
 	var fail = false
 	var mode = 'read
 	val trace = false
+	var code: IndexedSeq[Instruction] = _
+	var procmap: HashMap[FunCell, Int] = _
+	var p: Int = _
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -135,6 +138,13 @@ class WAM
 				put( x, n, x(i) )
 			case GetValueInstruction( n, i ) =>
 				unify( new Addr(x, n), new Addr(x, i) )
+			case CallInstruction( f ) =>
+				procmap.get( f ) match
+				{
+					case Some( loc ) => p = loc
+					case None => fail = true
+				}
+			case ProceedInstruction =>
 		}
 		
 		if (trace)
@@ -218,6 +228,8 @@ case class PutVariableInstruction( n: Int, i: Int ) extends Instruction
 case class PutValueInstruction( n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( n: Int, i: Int ) extends Instruction
+case class CallInstruction( f: FunCell ) extends Instruction
+case object ProceedInstruction extends Instruction
 
 trait Cell
 
