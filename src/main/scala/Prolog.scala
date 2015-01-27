@@ -34,9 +34,9 @@ object Prolog
 	
 	def parse( s: String ) = parser.parse( s, 4, '.' )
 	
-	def struct( varmap: HashMap[Symbol, Int], regmap: HashMap[Int, StructureAST] )
+	def struct( outerreg: Int, nextreg: Int, varmap: HashMap[Symbol, Int], regmap: HashMap[Int, StructureAST] ) =
 	{
-	var r = 2
+	var r = nextreg
 
 		def struct( reg: Int )
 		{
@@ -75,80 +75,121 @@ object Prolog
 			}
 		}
 		
-		struct( 1 )
+		struct( outerreg )
+		r
 	}
 
 	def query( q: StructureAST ) =
 	{
 	val varmap = new HashMap[Symbol, Int]
-	val regmap = HashMap(1 -> q)
-	
-		struct( varmap, regmap )
-		
-	val eqs = new ArrayBuffer[(Int, StructureAST)]
-	
-		def arrange( reg: Int )
-		{
-		val s = regmap(reg).asInstanceOf[StructureAST]
-		
-			for (i <- 0 until s.arity)
-			{
-			val r = s.args(i).asInstanceOf[IntAST].n
-			
-				if (regmap contains r)
-					arrange( r )
-			}
-			
-			eqs += reg -> s
-		}
-		
-		arrange( 1 )
-		
+	var nextreg = q.arity + 1
 	val code = new ArrayBuffer[Instruction]
 	val seen = new HashSet[Int]
 	
-		for (e <- eqs)
+		for (arg <- 1 to q.arity)
 		{
-			code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
-			seen += e._1
-			
-			for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
-				if (seen(n))
-					code += SetValueInstruction( n )
-				else
-				{
-					code += SetVariableInstruction( n )
-					seen += n
-				}
+			q.args(arg - 1) match
+			{
+				case VariableAST( v ) =>
+					varmap.get( v ) match
+					{
+						case None =>
+							code += PutVariableInstruction( nextreg, arg )
+							varmap(v) = nextreg
+							seen += nextreg
+							nextreg += 1
+						case Some( n ) =>
+							code += PutValueInstruction( n, arg )
+					}
+				case s: StructureAST =>
+					val regmap = HashMap(arg -> s)
+					val eqs = new ArrayBuffer[(Int, StructureAST)]
+					
+					nextreg = struct( arg, nextreg, varmap, regmap )
+					
+					def arrange( reg: Int )
+					{
+					val s = regmap(reg).asInstanceOf[StructureAST]
+					
+						for (i <- 0 until s.arity)
+						{
+						val r = s.args(i).asInstanceOf[IntAST].n
+						
+							if (regmap contains r)
+								arrange( r )
+						}
+						
+						eqs += reg -> s
+					}
+					
+					arrange( arg )
+					
+					for (e <- eqs)
+					{
+						code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+						seen += e._1
+						
+						for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
+							if (seen(n))
+								code += SetValueInstruction( n )
+							else
+							{
+								code += SetVariableInstruction( n )
+								seen += n
+							}
+					}
+			}
 		}
 		
+		code += CallInstruction( FunCell(q.f, q.arity) )
 		(code.toVector, varmap.toMap)
 	}
 	
 	def program( p: StructureAST ) =
 	{
-	val regmap = HashMap(1 -> p)
-	
-		struct( new HashMap[Symbol, Int], regmap )
-		
+	val varmap = new HashMap[Symbol, Int]
 	val code = new ArrayBuffer[Instruction]
 	val seen = new HashSet[Int]
+	var nextreg = p.arity + 1
 	
-		for (e <- regmap.toSeq.sortWith( (a, b) => a._1 < b._1 ))
+		for (arg <- 1 to p.arity)
 		{
-			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
-			seen += e._1
-			
-			for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
-				if (seen(n))
-					code += UnifyValueInstruction( n )
-				else
-				{
-					code += UnifyVariableInstruction( n )
-					seen += n
-				}
+			p.args(arg - 1) match
+			{
+				case VariableAST( v ) =>
+					varmap.get( v ) match
+					{
+						case None =>
+							code += GetVariableInstruction( nextreg, arg )
+							varmap(v) = nextreg
+							seen += nextreg
+							nextreg += 1
+						case Some( n ) =>
+							code += GetValueInstruction( n, arg )
+					}
+				case s: StructureAST =>
+					val regmap = HashMap(arg -> s)
+				
+					nextreg = struct( arg, nextreg, varmap, regmap )
+						
+					for (e <- regmap.toSeq.sortWith( (a, b) => a._1 < b._1 ))
+					{
+						code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+						seen += e._1
+						
+						for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
+							if (seen(n))
+								code += UnifyValueInstruction( n )
+							else
+							{
+								code += UnifyVariableInstruction( n )
+								seen += n
+							}
+					}
+			}
 		}
 		
-		code.toVector
+		code += ProceedInstruction
+		Code( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
 	}
 }

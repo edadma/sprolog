@@ -5,17 +5,17 @@ import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 
 class WAM
 {
+	val trace = false
+	
 	val heap = new Store( "H" )
 	val x = new Store( "X" )
 	val pdl = new ArrayStack[Addr]
 	var h = new Addr( heap, 0 )
-	var s: Addr = _
+	var s: Addr = h
 	var fail = false
 	var mode = 'read
-	val trace = false
-	var code: IndexedSeq[Instruction] = _
-	var procmap: HashMap[FunCell, Int] = _
-	var p: Int = _
+	var code: Code = _
+	var p: Int = -1
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -54,16 +54,20 @@ class WAM
 					f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
 		}
 	
-	def execute( code: Seq[Instruction] ): Boolean =
+	def execute( seq: Seq[Instruction] ): Boolean =
 	{
 		fail = false
 
-		for (inst <- code)
-		{
-			execute( inst )
-
-			if (fail)
+		for (inst <- seq)
+			if (execute( inst ))
 				return true
+		
+		while (p > -1)
+		{
+			if (execute( code.program(p) ))
+				return true
+				
+			p += 1
 		}
 		
 		false
@@ -139,12 +143,13 @@ class WAM
 			case GetValueInstruction( n, i ) =>
 				unify( new Addr(x, n), new Addr(x, i) )
 			case CallInstruction( f ) =>
-				procmap.get( f ) match
+				code.procmap.get( f ) match
 				{
 					case Some( loc ) => p = loc
 					case None => fail = true
 				}
 			case ProceedInstruction =>
+				p = -2
 		}
 		
 		if (trace)
@@ -237,6 +242,8 @@ case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
 
 class Store( val name: String ) extends ArrayBuffer[Cell]
+
+case class Code( program: IndexedSeq[Instruction], procmap: collection.Map[FunCell, Int] )
 
 class Addr( val store: Store, val ind: Int )
 {
