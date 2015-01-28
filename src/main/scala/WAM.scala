@@ -1,11 +1,12 @@
 package ca.hyperreal.swam
 
 import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
+import collection.immutable.SortedMap
 
 
 class WAM
 {
-	val trace = false
+	val trace = true
 	
 	val heap = new Store( "H" )
 	val x = new Store( "X" )
@@ -39,7 +40,10 @@ class WAM
 			case _ => a
 		}
 
-	def bindings( varmap: collection.Map[Symbol, Int] ) = varmap map {case (k, v) => k.name -> read( new Addr(x, v) )}
+	def bindings( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> read( new Addr(x, v) )} )
+	
+	def bindings( varmap: collection.Map[Symbol, Int] ): collection.Map[String, String] =
+		SortedMap( varmap.toSeq.map( {case (k: Symbol, v: Int) => k.name -> read( new Addr(x, v) )} ): _* )
 	
 	def read( a: Addr ): String =
 		deref( a ).read match
@@ -108,7 +112,8 @@ class WAM
 						}
 						else
 							fail = true
-					case _ => fail = true
+					case _ =>
+						fail = true
 				}
 			case UnifyVariableInstruction( i ) =>
 				mode match

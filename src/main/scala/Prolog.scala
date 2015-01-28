@@ -33,6 +33,8 @@ object Prolog
 		}
 	
 	def parse( s: String ) = parser.parse( s, 4, '.' )
+
+	val vars = new ArrayBuffer[(String, Int)]
 	
 	def struct( outerreg: Int, nextreg: Int, varmap: HashMap[Symbol, Int], regmap: HashMap[Int, StructureAST] ) =
 	{
@@ -51,6 +53,7 @@ object Prolog
 							val res = IntAST( r )
 							
 							varmap(n) = r
+							vars += (n.name + r -> r)
 							r += 1
 							res
 						case Some( ind ) =>
@@ -78,7 +81,7 @@ object Prolog
 		struct( outerreg )
 		r
 	}
-
+	
 	def query( q: StructureAST ) =
 	{
 	val varmap = new HashMap[Symbol, Int]
@@ -96,6 +99,8 @@ object Prolog
 						case None =>
 							code += PutVariableInstruction( nextreg, arg )
 							varmap(v) = nextreg
+							vars += (v.name + nextreg -> nextreg)
+							vars += (v.name + arg -> arg)
 							seen += nextreg
 							nextreg += 1
 						case Some( n ) =>
@@ -151,6 +156,7 @@ object Prolog
 	val code = new ArrayBuffer[Instruction]
 	val seen = new HashSet[Int]
 	var nextreg = p.arity + 1
+	val regmap = new HashMap[Int, StructureAST]
 	
 		for (arg <- 1 to p.arity)
 		{
@@ -168,11 +174,27 @@ object Prolog
 							code += GetValueInstruction( n, arg )
 					}
 				case s: StructureAST =>
-					val regmap = HashMap(arg -> s)
+					regmap(arg) = s
 				
 					nextreg = struct( arg, nextreg, varmap, regmap )
-						
-					for (e <- regmap.toSeq.sortWith( (a, b) => a._1 < b._1 ))
+					
+					val e = regmap(arg)
+					
+					code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
+					seen += arg
+					
+					for (IntAST( n ) <- e.args.asInstanceOf[Seq[IntAST]])
+						if (seen(n))
+							code += UnifyValueInstruction( n )
+						else
+						{
+							code += UnifyVariableInstruction( n )
+							seen += n
+						}
+			}
+		}
+
+					for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
 					{
 						code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 						seen += e._1
@@ -186,9 +208,7 @@ object Prolog
 								seen += n
 							}
 					}
-			}
-		}
-		
+
 		code += ProceedInstruction
 		Code( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
 	}
