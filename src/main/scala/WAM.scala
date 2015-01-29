@@ -11,6 +11,7 @@ class WAM
 	val heap = new Store( "H" )
 	val x = new Store( "X" )
 	val pdl = new ArrayStack[Addr]
+	val stack = new ArrayStack[Frame]
 	var h: Addr = _
 	var s: Addr = _
 	var fail = false
@@ -184,6 +185,10 @@ class WAM
 				}
 			case ProceedInstruction =>
 				p = cp
+			case AllocateInstruction( n ) =>
+				stack.push( new Frame(cp, n) )
+			case DeallocateInstruction =>
+				p = stack.pop.cp
 		}
 		
 		if (trace)
@@ -270,11 +275,18 @@ case class GetVariableInstruction( n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( n: Int, i: Int ) extends Instruction
 case class CallInstruction( f: FunCell ) extends Instruction
 case object ProceedInstruction extends Instruction
+case class AllocateInstruction( n: Int ) extends Instruction
+case object DeallocateInstruction extends Instruction
 
 trait Cell
 
 case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
+
+class Frame( val cp: Int, n: Int )
+{
+	val perm = new Array[Cell]( n )
+}
 
 class Store( val name: String ) extends ArrayBuffer[Cell]
 {
