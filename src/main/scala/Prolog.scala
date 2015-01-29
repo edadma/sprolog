@@ -99,8 +99,6 @@ object Prolog
 						case None =>
 							code += PutVariableInstruction( nextreg, arg )
 							varmap(v) = nextreg
-							vars += (v.name + nextreg -> nextreg)
-							vars += (v.name + arg -> arg)
 							seen += nextreg
 							nextreg += 1
 						case Some( n ) =>
@@ -147,7 +145,7 @@ object Prolog
 		}
 		
 		code += CallInstruction( FunCell(q.f, q.arity) )
-		(code.toVector, varmap.toMap)
+		new Query( code.toVector, varmap.toMap.map(_.swap) )
 	}
 	
 	def program( p: StructureAST ) =
@@ -194,22 +192,22 @@ object Prolog
 			}
 		}
 
-					for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
-					{
-						code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
-						seen += e._1
-						
-						for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
-							if (seen(n))
-								code += UnifyValueInstruction( n )
-							else
-							{
-								code += UnifyVariableInstruction( n )
-								seen += n
-							}
-					}
+		for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
+		{
+			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+			seen += e._1
+			
+			for (IntAST( n ) <- e._2.args.asInstanceOf[Seq[IntAST]])
+				if (seen(n))
+					code += UnifyValueInstruction( n )
+				else
+				{
+					code += UnifyVariableInstruction( n )
+					seen += n
+				}
+		}
 
 		code += ProceedInstruction
-		Code( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
+		new Program( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
 	}
 }

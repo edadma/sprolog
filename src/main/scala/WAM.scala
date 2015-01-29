@@ -6,17 +6,19 @@ import collection.immutable.SortedMap
 
 class WAM
 {
-	val trace = true
+	val trace = false
 	
 	val heap = new Store( "H" )
 	val x = new Store( "X" )
 	val pdl = new ArrayStack[Addr]
-	var h = new Addr( heap, 0 )
-	var s: Addr = h
+	var h: Addr = _
+	var s: Addr = _
 	var fail = false
 	var mode = 'read
-	var code: Code = _
+	var program: Program = _
 	var p: Int = -1
+	val varmap = new HashMap[Int, Symbol]
+	val vars = new ArrayBuffer[(Symbol, Addr)]
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -40,10 +42,14 @@ class WAM
 			case _ => a
 		}
 
-	def bindings( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> read( new Addr(x, v) )} )
+// 	def bindingmap( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> x(v).asInstanceOf[PtrCell].k} )
+// 	
+// 	def bindings( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> read( new Addr(x, v) )} )
+// 	
+// 	def bindings( varmap: collection.Map[Symbol, Int] ): collection.Map[String, String] =
+// 		SortedMap( varmap.toSeq.map( {case (k: Symbol, v: Int) => k.name -> read( new Addr(x, v) )} ): _* )
 	
-	def bindings( varmap: collection.Map[Symbol, Int] ): collection.Map[String, String] =
-		SortedMap( varmap.toSeq.map( {case (k: Symbol, v: Int) => k.name -> read( new Addr(x, v) )} ): _* )
+	def bindings = SortedMap( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
 	
 	def read( a: Addr ): String =
 		deref( a ).read match
@@ -58,23 +64,35 @@ class WAM
 					f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
 		}
 	
-	def execute( seq: Seq[Instruction] ): Boolean =
+	def execute( q: Query ): Boolean =
 	{
+		varmap.clear
+		varmap ++= q.varmap
 		fail = false
-
-		for (inst <- seq)
+		h = new Addr( heap, 0 )
+		
+		for (inst <- q.code)
 			if (execute( inst ))
 				return true
 		
 		while (p > -1)
 		{
-			if (execute( code.program(p) ))
+			if (execute( program.code(p) ))
 				return true
 				
 			p += 1
 		}
 		
 		false
+	}
+	
+	private def variable( n: Int, a: Addr )
+	{
+		varmap.get(n) match
+		{
+			case None =>
+			case Some( v ) => vars += (v -> a)
+		}
 	}
 	
 	def execute( inst: Instruction ) =
@@ -87,6 +105,7 @@ class WAM
 				put( x, i, h.read )
 				h += 2
 			case SetVariableInstruction( i ) =>
+				variable( i, h )
 				put( h, ref(h) )
 				put( x, i, h.read )
 				h += 1
@@ -118,25 +137,30 @@ class WAM
 			case UnifyVariableInstruction( i ) =>
 				mode match
 				{
-					case 'read => put( x, i, s.read )
+					case 'read =>
+						put( x, i, s.read )
+						s += 1
 					case 'write =>
 						put( h, ref(h) )
 						put( x, i, h.read )
 						h += 1
 				}
-				
-				s += 1
+/*				
+				s += 1*/
 			case UnifyValueInstruction( i ) =>
 				mode match
 				{
-					case 'read => unify( new Addr(x, i), s )
+					case 'read =>
+						unify( new Addr(x, i), s )
+						s += 1
 					case 'write =>
 						put( h, x(i) )
 						h += 1
 				}
-				
-				s += 1
+/*				
+				s += 1*/
 			case PutVariableInstruction( n, i ) =>
+				variable( n, h )
 				put( h, ref(h) )
 				put( x, n, h.read )
 				put( x, i, h.read )
@@ -148,7 +172,7 @@ class WAM
 			case GetValueInstruction( n, i ) =>
 				unify( new Addr(x, n), new Addr(x, i) )
 			case CallInstruction( f ) =>
-				code.procmap.get( f ) match
+				program.procmap.get( f ) match
 				{
 					case Some( loc ) => p = loc
 					case None => fail = true
@@ -160,6 +184,7 @@ class WAM
 		if (trace)
 		{
 			println( inst )
+			println( s"mode: $mode  H: $h  S: $s" )
 			println( x )
 			println( heap )
 			println
@@ -247,8 +272,23 @@ case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
 
 class Store( val name: String ) extends ArrayBuffer[Cell]
+{
+	override def toString =
+	{
+	val buf = new StringBuilder
+	
+		buf append s"store: $name\n"
+		
+		for (ind <- 0 until length)
+			buf append f"  $ind%2d " + this(ind) + "\n"
+			
+		buf.toString
+	}
+}
 
-case class Code( program: IndexedSeq[Instruction], procmap: collection.Map[FunCell, Int] )
+class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[FunCell, Int] )
+
+class Query( val code: IndexedSeq[Instruction], val varmap: collection.Map[Int, Symbol] )
 
 class Addr( val store: Store, val ind: Int )
 {
