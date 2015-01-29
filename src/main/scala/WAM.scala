@@ -17,6 +17,7 @@ class WAM
 	var mode = 'read
 	var program: Program = _
 	var p: Int = -1
+	var cp : Int = -1
 	val varmap = new HashMap[Int, Symbol]
 	val vars = new ArrayBuffer[(Symbol, Addr)]
 	
@@ -77,10 +78,12 @@ class WAM
 		
 		while (p > -1)
 		{
-			if (execute( program.code(p) ))
-				return true
-				
+		val _p = p
+		
 			p += 1
+			
+			if (execute( program.code(_p) ))
+				return true
 		}
 		
 		false
@@ -174,11 +177,13 @@ class WAM
 			case CallInstruction( f ) =>
 				program.procmap.get( f ) match
 				{
-					case Some( loc ) => p = loc
+					case Some( loc ) =>
+						cp = p	//p is incremented prior to instruction execution
+						p = loc
 					case None => fail = true
 				}
 			case ProceedInstruction =>
-				p = -2
+				p = cp
 		}
 		
 		if (trace)
@@ -200,7 +205,7 @@ class WAM
 	def unbound( a: Addr ) =
 		a.read match
 		{
-			case PtrCell('ref, p ) if p == a => true
+			case PtrCell('ref, ptr ) if ptr == a => true
 			case _ => false
 		}
 
