@@ -8,19 +8,25 @@ class WAM
 {
 	val trace = false
 	
-	val heap = new Store( "H" )
-	val x = new Store( "X" )
+	val QUERY = 1000000000
+	
+	val heap = new Store( "H", 10000 )
+	val x = new Store( "X", 100 )
 	val pdl = new ArrayStack[Addr]
 	val stack = new ArrayStack[Frame]
 	var h: Addr = _
 	var s: Addr = _
 	var fail = false
 	var mode = 'read
+	var query: Query = _
 	var program: Program = _
-	var p: Int = -1
-	var cp : Int = -1
-	val varmap = new HashMap[Int, Symbol]
+	var p: Int = _
+	var cp : Int = _
+	val varmap = new HashMap[(Int, Int), Symbol]
 	val vars = new ArrayBuffer[(Symbol, Addr)]
+	val regs = new Array[Store]( 2 )
+	
+	regs(0) = x
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -72,10 +78,9 @@ class WAM
 		varmap ++= q.varmap
 		fail = false
 		h = new Addr( heap, 0 )
-		
-		for (inst <- q.code)
-			if (execute( inst ))
-				return true
+		query = q
+		p = QUERY
+		cp = -1
 		
 		while (p > -1)
 		{
@@ -83,24 +88,28 @@ class WAM
 		
 			p += 1
 			
-			if (execute( program.code(_p) ))
+			if (execute( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) ))
 				return true
 		}
 		
 		false
 	}
 	
-	private def variable( n: Int, a: Addr )
+	private def variable( b: Int, n: Int, a: Addr )
 	{
-		varmap.get(n) match
-		{
-			case None =>
-			case Some( v ) => vars += (v -> a)
-		}
+		if (p >= QUERY)
+			varmap.get( (b, n) ) match
+			{
+				case None =>
+				case Some( v ) => vars += (v -> a)
+			}
 	}
 	
 	def execute( inst: Instruction ) =
 	{
+		if (trace)
+			println( inst )
+			
 		inst match
 		{
 			case PutStructureInstruction( f, i ) =>
@@ -108,13 +117,13 @@ class WAM
 				put( h + 1, f )
 				put( x, i, h.read )
 				h += 2
-			case SetVariableInstruction( i ) =>
-				variable( i, h )
+			case SetVariableInstruction( b, i ) =>
+				variable( b, i, h )
 				put( h, ref(h) )
-				put( x, i, h.read )
+				put( regs(b), i, h.read )
 				h += 1
-			case SetValueInstruction( i ) =>
-				put( h, x(i) )
+			case SetValueInstruction( b, i ) =>
+				put( h, regs(b)(i) )
 				h += 1
 			case GetStructureInstruction( f, i ) =>
 				val addr = deref( x, i )
@@ -138,43 +147,43 @@ class WAM
 					case _ =>
 						fail = true
 				}
-			case UnifyVariableInstruction( i ) =>
+			case UnifyVariableInstruction( b, i ) =>
 				mode match
 				{
 					case 'read =>
-						put( x, i, s.read )
+						put( regs(b), i, s.read )
 						s += 1
 					case 'write =>
 						put( h, ref(h) )
-						put( x, i, h.read )
+						put( regs(b), i, h.read )
 						h += 1
 				}
 /*				
 				s += 1*/
-			case UnifyValueInstruction( i ) =>
+			case UnifyValueInstruction( b, i ) =>
 				mode match
 				{
 					case 'read =>
-						unify( new Addr(x, i), s )
+						unify( new Addr(regs(b), i), s )
 						s += 1
 					case 'write =>
-						put( h, x(i) )
+						put( h, regs(b)(i) )
 						h += 1
 				}
 /*				
 				s += 1*/
-			case PutVariableInstruction( n, i ) =>
-				variable( n, h )
+			case PutVariableInstruction( b, n, i ) =>
+				variable( b, n, h )
 				put( h, ref(h) )
-				put( x, n, h.read )
+				put( regs(b), n, h.read )
 				put( x, i, h.read )
 				h += 1
-			case PutValueInstruction( n, i ) =>
-				put( x, i, x(n) )
-			case GetVariableInstruction( n, i ) =>
-				put( x, n, x(i) )
-			case GetValueInstruction( n, i ) =>
-				unify( new Addr(x, n), new Addr(x, i) )
+			case PutValueInstruction( b, n, i ) =>
+				put( x, i, regs(b)(n) )
+			case GetVariableInstruction( b, n, i ) =>
+				put( regs(b), n, x(i) )
+			case GetValueInstruction( b, n, i ) =>
+				unify( new Addr(regs(b), n), new Addr(x, i) )
 			case CallInstruction( f ) =>
 				program.procmap.get( f ) match
 				{
@@ -186,14 +195,16 @@ class WAM
 			case ProceedInstruction =>
 				p = cp
 			case AllocateInstruction( n ) =>
-				stack.push( new Frame(cp, n) )
+				val fr = new Frame( cp, n )
+				stack.push( fr )
+				regs(1) = fr.perm
 			case DeallocateInstruction =>
+				regs(1) = stack.top.perm
 				p = stack.pop.cp
 		}
 		
 		if (trace)
 		{
-			println( inst )
 			println( s"mode: $mode  H: $h  S: $s" )
 			println( x )
 			println( heap )
@@ -264,15 +275,15 @@ class WAM
 trait Instruction
 
 case class PutStructureInstruction( f: FunCell, i: Int ) extends Instruction
-case class SetVariableInstruction( i: Int ) extends Instruction
-case class SetValueInstruction( i: Int ) extends Instruction
+case class SetVariableInstruction( b: Int, i: Int ) extends Instruction
+case class SetValueInstruction( b: Int, i: Int ) extends Instruction
 case class GetStructureInstruction( f: FunCell, i: Int ) extends Instruction
-case class UnifyVariableInstruction( i: Int ) extends Instruction
-case class UnifyValueInstruction( i: Int ) extends Instruction
-case class PutVariableInstruction( n: Int, i: Int ) extends Instruction
-case class PutValueInstruction( n: Int, i: Int ) extends Instruction
-case class GetVariableInstruction( n: Int, i: Int ) extends Instruction
-case class GetValueInstruction( n: Int, i: Int ) extends Instruction
+case class UnifyVariableInstruction( b: Int, i: Int ) extends Instruction
+case class UnifyValueInstruction( b: Int, i: Int ) extends Instruction
+case class PutVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
+case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
+case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
+case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class CallInstruction( f: FunCell ) extends Instruction
 case object ProceedInstruction extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
@@ -285,10 +296,10 @@ case class FunCell( f: Symbol, n: Int ) extends Cell
 
 class Frame( val cp: Int, n: Int )
 {
-	val perm = new Array[Cell]( n )
+	val perm = new Store( "Y", n )
 }
 
-class Store( val name: String ) extends ArrayBuffer[Cell]
+class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
 {
 	override def toString =
 	{
@@ -304,8 +315,14 @@ class Store( val name: String ) extends ArrayBuffer[Cell]
 }
 
 class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[FunCell, Int] )
+{
+	override def toString = code + "\n" + procmap
+}
 
-class Query( val code: IndexedSeq[Instruction], val varmap: collection.Map[Int, Symbol] )
+class Query( val code: IndexedSeq[Instruction], val varmap: collection.Map[(Int, Int), Symbol] )
+{
+	override def toString = code + "\n" + varmap
+}
 
 class Addr( val store: Store, val ind: Int )
 {
