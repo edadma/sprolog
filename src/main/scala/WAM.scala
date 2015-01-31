@@ -74,8 +74,6 @@ class WAM
 	
 	def execute( q: Query ): Boolean =
 	{
-		varmap.clear
-		varmap ++= q.varmap
 		fail = false
 		h = new Addr( heap, 0 )
 		query = q
@@ -95,14 +93,10 @@ class WAM
 		false
 	}
 	
-	private def variable( b: Int, n: Int, a: Addr )
+	private def variable( v: Symbol, b: Int, n: Int, a: Addr )
 	{
-		if (p >= QUERY)
-			varmap.get( (b, n) ) match
-			{
-				case None =>
-				case Some( v ) => vars += (v -> a)
-			}
+		if (v ne null)
+			vars += (v -> a)
 	}
 	
 	def execute( inst: Instruction ) =
@@ -117,8 +111,8 @@ class WAM
 				put( h + 1, f )
 				put( x, i, h.read )
 				h += 2
-			case SetVariableInstruction( b, i ) =>
-				variable( b, i, h )
+			case SetVariableInstruction( v, b, i ) =>
+				variable( v, b, i, h )
 				put( h, ref(h) )
 				put( regs(b), i, h.read )
 				h += 1
@@ -172,8 +166,8 @@ class WAM
 				}
 /*				
 				s += 1*/
-			case PutVariableInstruction( b, n, i ) =>
-				variable( b, n, h )
+			case PutVariableInstruction( v, b, n, i ) =>
+				variable( v, b, n, h )
 				put( h, ref(h) )
 				put( regs(b), n, h.read )
 				put( x, i, h.read )
@@ -275,12 +269,12 @@ class WAM
 trait Instruction
 
 case class PutStructureInstruction( f: FunCell, i: Int ) extends Instruction
-case class SetVariableInstruction( b: Int, i: Int ) extends Instruction
+case class SetVariableInstruction( v: Symbol, b: Int, i: Int ) extends Instruction
 case class SetValueInstruction( b: Int, i: Int ) extends Instruction
 case class GetStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class UnifyVariableInstruction( b: Int, i: Int ) extends Instruction
 case class UnifyValueInstruction( b: Int, i: Int ) extends Instruction
-case class PutVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
+case class PutVariableInstruction( v: Symbol, b: Int, n: Int, i: Int ) extends Instruction
 case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
@@ -319,9 +313,9 @@ class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[Fu
 	override def toString = code + "\n" + procmap
 }
 
-class Query( val code: IndexedSeq[Instruction], val varmap: collection.Map[(Int, Int), Symbol] )
+class Query( val code: IndexedSeq[Instruction] )
 {
-	override def toString = code + "\n" + varmap
+	override def toString = code.toString
 }
 
 class Addr( val store: Store, val ind: Int )

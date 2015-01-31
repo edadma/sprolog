@@ -42,33 +42,33 @@ object Prolog
 
 		def struct( reg: Int )
 		{
-		val s = regmap(reg).asInstanceOf[StructureAST]
+		val s = regmap(reg)
 		val s1 = StructureAST( s.f, s.args.map (
 			_ match
 			{
-				case v@VariableAST( n ) =>
-					varmap.get(n) match
+				case VariableAST( v ) =>
+					varmap.get(v) match
 					{
 						case None =>
-							permmap.get(n) match
+							permmap.get(v) match
 							{
 								case None =>
-									val res = Var( true, 0, r )
+									val res = Var( true, v, 0, r )
 									
-									varmap(n) = (0, r)
+									varmap(v) = (0, r)
 									r += 1
 									res
 								case Some( p ) =>
-									val res = Var( true, 1, p )
+									val res = Var( true, v, 1, p )
 									
-									varmap(n) = (1, p)
+									varmap(v) = (1, p)
 									res
 							}
 						case Some( (b, n) ) =>
-							Var( false, b, n )
+							Var( false, v, b, n )
 					}
 				case str: StructureAST =>
-					val res = Var( true, 0, r )
+					val res = Var( true, null, 0, r )
 					
 					regmap(r) = str
 					r += 1
@@ -79,10 +79,10 @@ object Prolog
 			
 			for (i <- 0 until s1.arity)
 			{
-			val n = s1.args(i).asInstanceOf[Var].reg
+			val v = s1.args(i).asInstanceOf[Var]
 			
-				if (regmap contains n)
-					struct( n )
+				if (v.bank == 0 && regmap.contains( v.reg ))
+					struct( v.reg )
 			}
 		}
 		
@@ -118,6 +118,7 @@ object Prolog
 		for (t <- conjunctive( q ); s <- structvars( t ) if permset( s ))
 		{
 			permvars(s) = p
+			permset -= s
 			p += 1
 		}
 
@@ -166,11 +167,11 @@ object Prolog
 								permvars.get( v ) match
 								{
 									case None =>
-										code += PutVariableInstruction( 0, nextreg, arg )
+										code += PutVariableInstruction( v, 0, nextreg, arg )
 										varmap(v) = (0, nextreg)
 										nextreg += 1
 									case Some( n ) =>
-										code += PutVariableInstruction( 1, n, arg )
+										code += PutVariableInstruction( v, 1, n, arg )
 										varmap(v) = (1, n)
 								}
 							case Some( (b, n) ) =>
@@ -188,10 +189,10 @@ object Prolog
 						
 							for (i <- 0 until s.arity)
 							{
-							val r = s.args(i).asInstanceOf[Var].reg
+							val v = s.args(i).asInstanceOf[Var]
 							
-								if (regmap contains r)
-									arrange( r )
+								if (v.bank == 0 && regmap.contains( v.reg ))
+									arrange( v.reg )
 							}
 							
 							eqs += reg -> s
@@ -203,9 +204,9 @@ object Prolog
 						{
 							code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 							
-							for (Var( initial, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
+							for (Var( initial, _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
 								if (initial)
-									code += SetVariableInstruction( b, n )
+									code += SetVariableInstruction( null, b, n )
 								else
 									code += SetValueInstruction( b, n )
 						}
@@ -216,7 +217,7 @@ object Prolog
 		}
 
 		code += DeallocateInstruction
-		new Query( code.toVector, varmap.toMap.map(_.swap) )
+		new Query( code.toVector )
 	}
 	
 	def program( p: StructureAST ) =
@@ -257,7 +258,7 @@ object Prolog
 					
 					code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
 					
-					for (Var( initial, b, n ) <- e.args.asInstanceOf[Seq[Var]])
+					for (Var( initial, _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
 						if (initial)
 							code += UnifyVariableInstruction( b, n )
 						else
@@ -269,7 +270,7 @@ object Prolog
 		{
 			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 			
-			for (Var( initial, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
+			for (Var( initial, _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
 				if (initial)
 					code += UnifyVariableInstruction( b, n )
 				else
@@ -280,7 +281,7 @@ object Prolog
 		new Program( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
 	}
 	
-	case class Var( initial: Boolean, bank: Int, reg: Int ) extends AST
+	case class Var( initial: Boolean, v: Symbol, bank: Int, reg: Int ) extends AST
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
 }
