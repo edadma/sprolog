@@ -69,7 +69,8 @@ class WAM
 				if (n == 0)
 					f.name
 				else
-					f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
+ 					f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
+//					f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
 		}
 	
 	def execute( q: Query ): Boolean =
@@ -102,8 +103,11 @@ class WAM
 	def execute( inst: Instruction ) =
 	{
 		if (trace)
+		{
 			println( inst )
-			
+			io.StdIn.readLine
+		}
+		
 		inst match
 		{
 			case PutStructureInstruction( f, i ) =>
@@ -201,6 +205,10 @@ class WAM
 		{
 			println( s"mode: $mode  H: $h  S: $s" )
 			println( x )
+			
+			if (!stack.isEmpty)
+				println( stack.top.perm )
+				
 			println( heap )
 			println
 		}
@@ -219,12 +227,21 @@ class WAM
 			case _ => false
 		}
 
+// 	def bind( a1: Addr, a2: Addr )
+// 	{
+// 		if (unbound( a1 ))
+// 			put( a1, ref(a2) )
+// 		else if (unbound( a2 ))
+// 			put( a2, ref(a1) )
+// 		else
+// 			sys.error( "neither address is unbound" )
+// 	}
 	def bind( a1: Addr, a2: Addr )
 	{
 		if (unbound( a1 ))
-			put( a1, ref(a2) )
+			put( a1, a2.read )
 		else if (unbound( a2 ))
-			put( a2, ref(a1) )
+			put( a2, a1.read )
 		else
 			sys.error( "neither address is unbound" )
 	}
