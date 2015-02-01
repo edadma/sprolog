@@ -1,6 +1,6 @@
 package ca.hyperreal.swam
 
-import java.io.Reader
+import java.io.{Reader, StringReader}
 
 import collection.mutable.{ListBuffer, ArrayBuffer, HashMap, HashSet}
 
@@ -34,7 +34,46 @@ object Prolog
 	
 	val COMMA = Symbol( "," )
 	
-	def parse( s: String ) = parser.parse( s, 4, '.' )
+	def parseClause( s: String ) = parser.parse( s, 4, '.' )
+	
+	def parseQuery( s: String ) =
+	{
+	val (query, rest) = parseClause( s )
+	
+		if (rest.head.end || rest.tail.head.end)
+		{
+			if (!query.isInstanceOf[StructureAST])
+				sys.error( "expected a structure/atom" )
+				
+			query.asInstanceOf[StructureAST]
+		}
+		else
+			rest.tail.head.pos.error( "unexpected input following query" )
+	}
+	
+	def parseProgram( s: String ) =
+	{
+	val clauses = new ListBuffer[StructureAST]
+		
+		def clause( toks: Stream[Token] )
+		{
+		val (c, rest) = parser.parseTokens( toks, '.' )
+		
+			if (rest.head.kind != '.')
+				rest.head.pos.error( "expected '.' following clause" )
+				
+			if (!c.isInstanceOf[StructureAST])
+				sys.error( "expected a structure/atom" )
+				
+			clauses += c.asInstanceOf[StructureAST]
+			
+			if (!rest.tail.head.end)
+				clause( rest.tail )
+		}
+		
+		clause( parser.scan(new StringReader(s), 4) )
+		clauses.toList
+	}
 	
 	def struct( outerreg: Int, nextreg: Int, varmap: HashMap[Symbol, (Int, Int)], regmap: HashMap[Int, StructureAST], permmap: Map[Symbol, Int] ) =
 	{
@@ -220,65 +259,73 @@ object Prolog
 		new Query( code.toVector )
 	}
 	
-	def program( p: StructureAST ) =
+	def program( ps: List[StructureAST] ) =
 	{
-	val permvars = Map[Symbol, Int]()
-	val varmap = new HashMap[Symbol, (Int, Int)]
+	val procmap = new HashMap[FunCell, Int]
 	val code = new ArrayBuffer[Instruction]
-	var nextreg = p.arity + 1
-	val regmap = new HashMap[Int, StructureAST]
 	
-		for (arg <- 1 to p.arity)
+		for (p <- ps)
 		{
-			p.args(arg - 1) match
-			{
-				case VariableAST( v ) =>
-					varmap.get( v ) match
-					{
-						case None =>
-							permvars.get( v ) match
-							{
-								case None =>
-									code += GetVariableInstruction( 0, nextreg, arg )
-									varmap(v) = (0, nextreg)
-									nextreg += 1
-								case Some( n ) =>
-									code += GetVariableInstruction( 1, n, arg )
-									varmap(v) = (1, n)
-							}
-						case Some( (b, n) ) =>
-							code += GetValueInstruction( b, n, arg )
-					}
-				case s: StructureAST =>
-					regmap(arg) = s
-				
-					nextreg = struct( arg, nextreg, varmap, regmap, permvars )
-					
-					val e = regmap(arg)
-					
-					code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
-					
-					for (Var( initial, _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
-						if (initial)
-							code += UnifyVariableInstruction( b, n )
-						else
-							code += UnifyValueInstruction( b, n )
-			}
-		}
-
-		for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
-		{
-			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+			procmap(FunCell(p.f, p.arity)) = code.size
 			
-			for (Var( initial, _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
-				if (initial)
-					code += UnifyVariableInstruction( b, n )
-				else
-					code += UnifyValueInstruction( b, n )
-		}
+		val permvars = Map[Symbol, Int]()
+		val varmap = new HashMap[Symbol, (Int, Int)]
+		var nextreg = p.arity + 1
+		val regmap = new HashMap[Int, StructureAST]
+		
+			for (arg <- 1 to p.arity)
+			{
+				p.args(arg - 1) match
+				{
+					case VariableAST( v ) =>
+						varmap.get( v ) match
+						{
+							case None =>
+								permvars.get( v ) match
+								{
+									case None =>
+										code += GetVariableInstruction( 0, nextreg, arg )
+										varmap(v) = (0, nextreg)
+										nextreg += 1
+									case Some( n ) =>
+										code += GetVariableInstruction( 1, n, arg )
+										varmap(v) = (1, n)
+								}
+							case Some( (b, n) ) =>
+								code += GetValueInstruction( b, n, arg )
+						}
+					case s: StructureAST =>
+						regmap(arg) = s
+					
+						nextreg = struct( arg, nextreg, varmap, regmap, permvars )
+						
+						val e = regmap(arg)
+						
+						code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
+						
+						for (Var( initial, _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
+							if (initial)
+								code += UnifyVariableInstruction( b, n )
+							else
+								code += UnifyValueInstruction( b, n )
+				}
+			}
 
-		code += ProceedInstruction
-		new Program( code.toVector, Map(FunCell(p.f, p.arity) -> 0) )
+			for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
+			{
+				code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+				
+				for (Var( initial, _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
+					if (initial)
+						code += UnifyVariableInstruction( b, n )
+					else
+						code += UnifyValueInstruction( b, n )
+			}
+
+			code += ProceedInstruction
+		}
+		
+		new Program( code.toVector, procmap.toMap )
 	}
 	
 	case class Var( initial: Boolean, v: Symbol, bank: Int, reg: Int ) extends AST
