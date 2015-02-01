@@ -1,7 +1,5 @@
 package ca.hyperreal.swam
 
-import collection.mutable.HashSet
-
 
 object TestMain extends App
 {
@@ -9,19 +7,20 @@ object TestMain extends App
 //	val p = Prolog.parse( "p( f(X), h(Y, f(a)), Y )." )._1.asInstanceOf[StructureAST]
 //	val p = Prolog.parse( "p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
 //	val p = Prolog.parse( "X = X." )._1.asInstanceOf[StructureAST]
-	val p = Prolog.parseProgram( "q( f(A), A ). X = X. r( A, g(A) ). " )
+	val p = Prolog.parseProgram( "q( A, B ) :- A = a, B = b. X = X." )
 	val pc = Prolog.program( p )
 
-//	println( pc )
+	println( pc )
 	wam.program = pc
 	
 //	val q = Prolog.parse( "p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
 //	val q = Prolog.parse( "p( f(X), h(Y, f(a)), Y )." )._1.asInstanceOf[StructureAST]
 //	val q = Prolog.parse( "p( f(X), h(Y, f(a)), Y ) = p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
-	val q = Prolog.parseQuery( "q( X, Z ), r( Z, Y ), a = Z." )
+// 	val q = Prolog.parseQuery( "q( X, Z ), r( Z, Y ), a = Z." )
+	val q = Prolog.parseQuery( "q( X, Y )." )
 	val qc = Prolog.query( q )
 	
-//	println( qc )
+	println( qc )
 	
 	if (wam execute qc)
 		println( "fail" )
