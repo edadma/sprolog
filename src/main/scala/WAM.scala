@@ -207,7 +207,7 @@ class WAM
 				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr.size, h )
 				hb = h
 			case RetryMeElseInstruction( l ) =>
-				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
+				bstack.argregs copyToBuffer x
 				estack = bstack.estack
 				cp = bstack.cp
 				bstack.bp = l.ref
@@ -215,7 +215,7 @@ class WAM
 				h = bstack.h
 				hb = h
 			case TrustMeInstruction =>
-				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
+				bstack.argregs copyToBuffer x
 				estack = bstack.estack
 				cp = bstack.cp
 				unwind( bstack.tr )
@@ -245,7 +245,6 @@ class WAM
 	{
 		if (bstack eq null)
 		{
-			println( "no more choice points" )
 			p = -1
 			fail = true
 		}
@@ -275,15 +274,6 @@ class WAM
 			case _ => false
 		}
 
-// 	def bind( a1: Addr, a2: Addr )
-// 	{
-// 		if (unbound( a1 ))
-// 			put( a1, ref(a2) )
-// 		else if (unbound( a2 ))
-// 			put( a2, ref(a1) )
-// 		else
-// 			sys.error( "neither address is unbound" )
-// 	}
 	def bind( a1: Addr, a2: Addr )
 	{
 		if (unbound( a1 ))
@@ -362,7 +352,6 @@ case class RetryMeElseInstruction( l: Label ) extends Instruction
 case object TrustMeInstruction extends Instruction
 
 trait Cell
-
 case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
 
@@ -457,7 +446,7 @@ class Addr( val store: Store, val ind: Int ) extends Ordered[Addr]
 			sys.error( "incorrect store" )
 		else
 			read
-		
+	
 	def +( inc: Int ) = if (inc == 0) this else new Addr( store, ind + inc )
 	
 	override def equals( that: Any ) = that.isInstanceOf[Addr] && (this.store eq that.asInstanceOf[Addr].store) && this.ind == that.asInstanceOf[Addr].ind

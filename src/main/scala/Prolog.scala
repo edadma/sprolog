@@ -266,6 +266,12 @@ object Prolog
 		code.toVector
 	}
 	
+	def fact( f: StructureAST, code: ArrayBuffer[Instruction] )
+	{
+		head( f, code, Map.empty )
+		code += ProceedInstruction
+	}
+	
 	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction] )
 	{
 	val permvars = permanent( b, new HashSet ++ structvars(h) )
@@ -273,25 +279,6 @@ object Prolog
 		println( structvars(h) )
 		code += AllocateInstruction( permvars.size + 1 )
 		body( b, code, permvars, head(h, code, permvars), false )
-	}
-	
-	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[FunCell, Int] )
-	{
-		c match
-		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) =>
-				procmap(FunCell(h.f, h.arity)) = code.length
-				rule( h, b, code )
-			case f: StructureAST =>
-				procmap(FunCell(f.f, f.arity)) = code.length
-				fact( f, code )
-		}
-	}
-	
-	def fact( f: StructureAST, code: ArrayBuffer[Instruction] )
-	{
-		head( f, code, Map.empty )
-		code += ProceedInstruction
 	}
 	
 	def head( p: StructureAST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int] ) =
@@ -352,14 +339,80 @@ object Prolog
 		varmap
 	}
 	
+	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[FunCell, Int],
+				proctype: HashMap[FunCell, Int], proclabel: HashMap[FunCell, Label] )
+	{
+	val pred =
+		c match
+		{
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => FunCell( h.f, h.arity )
+			case f: StructureAST => FunCell( f.f, f.arity )
+		}
+		
+		if (procmap contains pred)
+		{
+			proclabel( pred ) backpatch code.length
+			
+			if (proctype( pred ) > 1)
+			{
+			val l = new Label
+			
+				code += RetryMeElseInstruction( l )
+				proclabel( pred ) = l
+				proctype( pred ) -= 1
+			}
+			else
+				code += TrustMeInstruction
+		}
+		else
+		{
+			procmap( pred ) = code.length
+			
+			if (proctype( pred ) > 1)
+			{
+			val l = new Label
+			
+				code += TryMeElseInstruction( l )
+				proclabel( pred ) = l
+				proctype( pred ) -= 1
+			}
+		}
+		
+		c match
+		{
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code )
+			case f: StructureAST => fact( f, code )
+		}
+	}
+	
 	def program( cs: List[StructureAST] ) =
 	{
+	val proctype = new HashMap[FunCell, Int]
+	val proclabel = new HashMap[FunCell, Label]
 	val procmap = new HashMap[FunCell, Int]
+	
+		for (c <- cs)
+		{
+		val pred =
+			c match
+			{
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) =>
+				FunCell( h.f, h.arity )
+			case f: StructureAST =>
+				FunCell( f.f, f.arity )
+			}
+			
+			if (proctype contains pred)
+				proctype(pred) += 1
+			else
+				proctype(pred) = 1
+		}
+		
 	val code = new ArrayBuffer[Instruction]
 	val permvars = Map[Symbol, Int]()
 	
 		for (c <- cs)
-			clause( c, code, procmap )
+			clause( c, code, procmap, proctype, proclabel )
 		
 		new Program( code.toVector, procmap.toMap )
 	}
