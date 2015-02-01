@@ -13,20 +13,21 @@ class WAM
 	val heap = new Store( "H", 10000 )
 	val x = new Store( "X", 100 )
 	val pdl = new ArrayStack[Addr]
-	val stack = new ArrayStack[Frame]
+	var estack: Frame = null
+	var bstack: Choice = null
 	var h: Addr = _
+	var hb: Addr = _
 	var s: Addr = _
-	var fail = false
-	var mode = 'read
+	var fail: Boolean = _
+	var mode: Mode = _
 	var query: Query = _
 	var program: Program = _
 	var p: Int = _
 	var cp : Int = _
-	val varmap = new HashMap[(Int, Int), Symbol]
 	val vars = new ArrayBuffer[(Symbol, Addr)]
-	val regs = new Array[Store]( 2 )
-	
-	regs(0) = x
+	val regs = Array[Store]( x, null )	// second element points to current environment variable store
+	var tr: Addr = _
+	var argc: Int = _
 	
 	def put( a: Addr, c: Cell )
 	{
@@ -133,12 +134,12 @@ class WAM
 						put( h + 1, f )
 						bind( addr, h )
 						h += 2
-						mode = 'write
+						mode = WriteMode
 					case PtrCell( 'str, a ) =>
 						if (a.read == f)
 						{
 							s = a + 1
-							mode = 'read
+							mode = ReadMode
 						}
 						else
 							fail = true
@@ -148,10 +149,10 @@ class WAM
 			case UnifyVariableInstruction( b, i ) =>
 				mode match
 				{
-					case 'read =>
+					case ReadMode =>
 						put( regs(b), i, s.read )
 						s += 1
-					case 'write =>
+					case WriteMode =>
 						put( h, ref(h) )
 						put( regs(b), i, h.read )
 						h += 1
@@ -161,10 +162,10 @@ class WAM
 			case UnifyValueInstruction( b, i ) =>
 				mode match
 				{
-					case 'read =>
+					case ReadMode =>
 						unify( new Addr(regs(b), i), s )
 						s += 1
-					case 'write =>
+					case WriteMode =>
 						put( h, regs(b)(i) )
 						h += 1
 				}
@@ -186,6 +187,7 @@ class WAM
 				program.procmap.get( f ) match
 				{
 					case Some( loc ) =>
+						argc = f.n
 						cp = p	//p is incremented prior to instruction execution
 						p = loc
 					case None => fail = true
@@ -193,12 +195,33 @@ class WAM
 			case ProceedInstruction =>
 				p = cp
 			case AllocateInstruction( n ) =>
-				val fr = new Frame( cp, n )
-				stack.push( fr )
-				regs(1) = fr.perm
+				estack = new Frame( estack, cp, n )
+				regs(1) = estack.perm
 			case DeallocateInstruction =>
-				regs(1) = stack.top.perm
-				p = stack.pop.cp
+				regs(1) = estack.perm
+				p = estack.cp
+				estack = estack.prev
+			case TryMeElseInstruction( l ) =>
+				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr, h )
+				hb = h
+			case RetryMeElseInstruction( l ) =>
+				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
+				estack = bstack.estack
+				cp = bstack.cp
+				bstack.bp = l.ref
+				unwind( bstack.tr, tr )
+				tr = bstack.tr
+				h = bstack.h
+				hb = h
+			case TrustMeInstruction =>
+				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
+				estack = bstack.estack
+				cp = bstack.cp
+				unwind( bstack.tr, tr )
+				tr = bstack.tr
+				h = bstack.h
+				hb = h
+				bstack = bstack.prev
 		}
 		
 		if (trace)
@@ -206,8 +229,8 @@ class WAM
 			println( s"mode: $mode  H: $h  S: $s" )
 			println( x )
 			
-			if (!stack.isEmpty)
-				println( stack.top.perm )
+			if (estack ne null)
+				println( estack.perm )
 				
 			println( heap )
 			println
@@ -219,6 +242,11 @@ class WAM
 	def ref( a: Addr ) = PtrCell( 'ref, a )
 	
 	def str( a: Addr ) = PtrCell( 'str, a )
+	
+	def unwind( a1: Addr, a2: Addr )
+	{
+		
+	}
 	
 	def unbound( a: Addr ) =
 		a.read match
@@ -299,15 +327,60 @@ case class CallInstruction( f: FunCell ) extends Instruction
 case object ProceedInstruction extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
 case object DeallocateInstruction extends Instruction
+case class TryMeElseInstruction( l: Label ) extends Instruction
+case class RetryMeElseInstruction( l: Label ) extends Instruction
+case object TrustMeInstruction extends Instruction
 
 trait Cell
 
 case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
 
-class Frame( val cp: Int, n: Int )
+trait Mode
+case object ReadMode extends Mode
+case object WriteMode extends Mode
+
+class Label
+{
+	private var p: Int = _
+	private var set = false
+	
+	val n = Label.next
+	
+	def backpatch( p: Int )
+	{
+		this.p = p
+		set = true
+	}
+	
+	def ref =
+		if (!set)
+			sys.error( toString )
+		else
+			p
+	
+	override def toString = "L" + n + (if (!set) " UNPATCHED" else "")
+}
+
+object Label
+{
+	private var n = 0
+	
+	def next =
+	{
+		n += 1
+		n
+	}
+}
+
+class Frame( val prev: Frame, val cp: Int, n: Int )
 {
 	val perm = new Store( "Y", n )
+}
+
+class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Addr, val h: Addr )
+{
+	val argregs = regs.take( n ).toVector
 }
 
 class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
@@ -335,9 +408,17 @@ class Query( val code: IndexedSeq[Instruction] )
 	override def toString = code.toString
 }
 
-class Addr( val store: Store, val ind: Int )
+class Addr( val store: Store, val ind: Int ) extends Ordered[Addr]
 {
 	def read = store(ind)
+
+	def compare( that: Addr ) =
+	{
+		if (store ne that.store)
+			sys.error( s"$this and $that are not in the same 'store'" )
+			
+		this.ind - that.ind
+	}
 	
 	def read( from: Seq[Cell] ): Cell =
 		if (from ne store)
