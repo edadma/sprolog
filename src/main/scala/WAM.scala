@@ -1,4 +1,4 @@
-package ca.hyperreal.swam
+package ca.hyperreal.sprolog
 
 import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 import collection.immutable.SortedMap
@@ -8,7 +8,8 @@ class WAM
 {
 	var program: Program = _
 	
-	protected val trace = false
+	protected val trace = true
+	protected val step = false
 	protected val QUERY = 1000000000	
 	protected val heap = new Store( "H", 10000 )
 	protected val x = new Store( "X", 100 )
@@ -116,7 +117,9 @@ class WAM
 		if (trace)
 		{
 			println( inst )
-			io.StdIn.readLine
+			
+			if (step)
+				io.StdIn.readLine
 		}
 		
 		inst match
@@ -220,6 +223,7 @@ class WAM
 			case RetryMeElseInstruction( l ) =>
 				bstack.argregs copyToBuffer x
 				estack = bstack.estack
+				regs(1) = estack.perm
 				cp = bstack.cp
 				bstack.bp = l.ref
 				unwind( bstack.tr )
@@ -228,6 +232,7 @@ class WAM
 			case TrustMeInstruction =>
 				bstack.argregs copyToBuffer x
 				estack = bstack.estack
+				regs(1) = estack.perm
 				cp = bstack.cp
 				unwind( bstack.tr )
 				h = bstack.h

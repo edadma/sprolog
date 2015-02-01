@@ -1,4 +1,4 @@
-package ca.hyperreal.swam
+package ca.hyperreal.sprolog
 
 import java.io.{Reader, StringReader}
 
@@ -276,7 +276,6 @@ object Prolog
 	{
 	val permvars = permanent( b, new HashSet ++ structvars(h) )
 	
-		println( structvars(h) )
 		code += AllocateInstruction( permvars.size + 1 )
 		body( b, code, permvars, head(h, code, permvars), false )
 	}

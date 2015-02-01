@@ -1,4 +1,4 @@
-package ca.hyperreal.swam
+package ca.hyperreal.sprolog
 
 
 trait AST
