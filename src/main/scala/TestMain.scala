@@ -25,5 +25,11 @@ object TestMain extends App
 	if (wam execute qc)
 		println( "fail" )
 	else
-		println( wam.bindings )
+	{
+		while (wam.alternative)
+		{
+			println( wam.bindings )
+			wam.continue
+		}
+	}
 }

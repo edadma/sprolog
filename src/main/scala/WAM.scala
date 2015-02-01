@@ -6,35 +6,75 @@ import collection.immutable.SortedMap
 
 class WAM
 {
-	val trace = false
-	
-	val QUERY = 1000000000
-	
-	val heap = new Store( "H", 10000 )
-	val x = new Store( "X", 100 )
-	val pdl = new ArrayStack[Addr]
-	val tr = new ArrayStack[Addr]
-	var estack: Frame = null
-	var bstack: Choice = null
-	var h: Addr = _
-	var hb: Addr = _
-	var s: Addr = _
-	var fail: Boolean = _
-	var mode: Mode = _
-	var query: Query = _
 	var program: Program = _
-	var p: Int = _
-	var cp : Int = _
-	val vars = new ArrayBuffer[(Symbol, Addr)]
-	val regs = Array[Store]( x, null )	// second element points to current environment variable store
-	var argc: Int = _
 	
-	def put( a: Addr, c: Cell )
+	protected val trace = false
+	protected val QUERY = 1000000000	
+	protected val heap = new Store( "H", 10000 )
+	protected val x = new Store( "X", 100 )
+	protected val pdl = new ArrayStack[Addr]
+	protected val tr = new ArrayStack[Addr]
+	protected var estack: Frame = null
+	protected var bstack: Choice = null
+	protected var h: Addr = _
+	protected var hb: Addr = _
+	protected var s: Addr = _
+	protected var fail: Boolean = _
+	protected var mode: Mode = _
+	protected var query: Query = _
+	protected var p: Int = _
+	protected var cp : Int = _
+	protected val vars = new ArrayBuffer[(Symbol, Addr)]
+	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
+	protected var argc: Int = _
+	
+	def execute( q: Query ) =
+	{
+		fail = false
+		h = new Addr( heap, 0 )
+		tr.clear
+		estack = null
+		bstack = null
+		query = q
+		p = QUERY
+		cp = -1
+		vars.clear
+		run
+	}
+	
+	def bindings = SortedMap( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
+
+	def alternative = !fail
+	
+	def continue =
+		if (fail)
+			false
+		else
+		{
+			backtrack
+			run
+		}
+	
+	protected def run =
+	{
+		while (p > -1 && !fail)
+		{
+		val _p = p
+		
+			p += 1
+			
+			perform( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) )
+		}
+		
+		fail
+	}
+		
+	protected def put( a: Addr, c: Cell )
 	{
 		put( a.store, a.ind, c )
 	}
 	
-	def put( r: Store, index: Int, c: Cell )
+	protected def put( r: Store, index: Int, c: Cell )
 	{
 		if (r.size <= index)
 			r ++= Seq.fill[Cell]( index - r.size + 1 )( null )
@@ -42,25 +82,16 @@ class WAM
 		r(index) = c
 	}
 	
-	def deref( store: Store, a: Int ): Addr = deref( new Addr(store, a) )
+	protected def deref( store: Store, a: Int ): Addr = deref( new Addr(store, a) )
 	
-	def deref( a: Addr ): Addr =
+	protected def deref( a: Addr ): Addr =
 		a.read match
 		{
 			case PtrCell( 'ref, v ) if v != a => deref( v )
 			case _ => a
 		}
-
-// 	def bindingmap( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> x(v).asInstanceOf[PtrCell].k} )
-// 	
-// 	def bindings( vars: Seq[(String, Int)] ) = vars.map( {case (k: String, v: Int) => k -> read( new Addr(x, v) )} )
-// 	
-// 	def bindings( varmap: collection.Map[Symbol, Int] ): collection.Map[String, String] =
-// 		SortedMap( varmap.toSeq.map( {case (k: Symbol, v: Int) => k.name -> read( new Addr(x, v) )} ): _* )
 	
-	def bindings = SortedMap( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
-	
-	def read( a: Addr ): String =
+	protected def read( a: Addr ): String =
 		deref( a ).read match
 		{
 			case PtrCell( 'ref, a ) => a.store.name + a.ind
@@ -74,33 +105,13 @@ class WAM
 //					f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
 		}
 	
-	def execute( q: Query ): Boolean =
-	{
-		fail = false
-		h = new Addr( heap, 0 )
-		query = q
-		p = QUERY
-		cp = -1
-		
-		while (p > -1 && !fail)
-		{
-		val _p = p
-		
-			p += 1
-			
-			execute( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) )
-		}
-		
-		fail
-	}
-	
-	private def variable( v: Symbol, b: Int, n: Int, a: Addr )
+	protected def variable( v: Symbol, b: Int, n: Int, a: Addr )
 	{
 		if (v ne null)
 			vars += (v -> a)
 	}
 	
-	def execute( inst: Instruction )
+	protected def perform( inst: Instruction )
 	{
 		if (trace)
 		{
@@ -237,11 +248,11 @@ class WAM
 		}
 	}
 	
-	def ref( a: Addr ) = PtrCell( 'ref, a )
+	protected def ref( a: Addr ) = PtrCell( 'ref, a )
 	
-	def str( a: Addr ) = PtrCell( 'str, a )
+	protected def str( a: Addr ) = PtrCell( 'str, a )
 	
-	def backtrack
+	protected def backtrack
 	{
 		if (bstack eq null)
 		{
@@ -252,7 +263,7 @@ class WAM
 			p = bstack.bp
 	}
 	
-	def unwind( size: Int )
+	protected def unwind( size: Int )
 	{
 		while (tr.size > size)
 		{
@@ -262,19 +273,19 @@ class WAM
 		}
 	}
 	
-	def trail( a: Addr )
+	protected def trail( a: Addr )
 	{
 		tr push a
 	}
 	
-	def unbound( a: Addr ) =
+	protected def unbound( a: Addr ) =
 		a.read match
 		{
 			case PtrCell('ref, ptr ) if ptr == a => true
 			case _ => false
 		}
 
-	def bind( a1: Addr, a2: Addr )
+	protected def bind( a1: Addr, a2: Addr )
 	{
 		if (unbound( a1 ))
 		{
@@ -290,7 +301,7 @@ class WAM
 			sys.error( "neither address is unbound" )
 	}
 	
-	def unify( a1: Addr, a2: Addr ) =
+	protected def unify( a1: Addr, a2: Addr ) =
 	{
 	var failure = false
 	
