@@ -13,6 +13,7 @@ class WAM
 	val heap = new Store( "H", 10000 )
 	val x = new Store( "X", 100 )
 	val pdl = new ArrayStack[Addr]
+	val tr = new ArrayStack[Addr]
 	var estack: Frame = null
 	var bstack: Choice = null
 	var h: Addr = _
@@ -26,7 +27,6 @@ class WAM
 	var cp : Int = _
 	val vars = new ArrayBuffer[(Symbol, Addr)]
 	val regs = Array[Store]( x, null )	// second element points to current environment variable store
-	var tr: Addr = _
 	var argc: Int = _
 	
 	def put( a: Addr, c: Cell )
@@ -82,17 +82,16 @@ class WAM
 		p = QUERY
 		cp = -1
 		
-		while (p > -1)
+		while (p > -1 && !fail)
 		{
 		val _p = p
 		
 			p += 1
 			
-			if (execute( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) ))
-				return true
+			execute( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) )
 		}
 		
-		false
+		fail
 	}
 	
 	private def variable( v: Symbol, b: Int, n: Int, a: Addr )
@@ -101,7 +100,7 @@ class WAM
 			vars += (v -> a)
 	}
 	
-	def execute( inst: Instruction ) =
+	def execute( inst: Instruction )
 	{
 		if (trace)
 		{
@@ -142,9 +141,9 @@ class WAM
 							mode = ReadMode
 						}
 						else
-							fail = true
+							backtrack
 					case _ =>
-						fail = true
+						backtrack
 				}
 			case UnifyVariableInstruction( b, i ) =>
 				mode match
@@ -163,7 +162,9 @@ class WAM
 				mode match
 				{
 					case ReadMode =>
-						unify( new Addr(regs(b), i), s )
+						if (unify( new Addr(regs(b), i), s ))
+							backtrack
+							
 						s += 1
 					case WriteMode =>
 						put( h, regs(b)(i) )
@@ -182,7 +183,8 @@ class WAM
 			case GetVariableInstruction( b, n, i ) =>
 				put( regs(b), n, x(i) )
 			case GetValueInstruction( b, n, i ) =>
-				unify( new Addr(regs(b), n), new Addr(x, i) )
+				if (unify( new Addr(regs(b), n), new Addr(x, i) ))
+					backtrack
 			case CallInstruction( f ) =>
 				program.procmap.get( f ) match
 				{
@@ -190,7 +192,7 @@ class WAM
 						argc = f.n
 						cp = p	//p is incremented prior to instruction execution
 						p = loc
-					case None => fail = true
+					case None => backtrack
 				}
 			case ProceedInstruction =>
 				p = cp
@@ -202,23 +204,21 @@ class WAM
 				p = estack.cp
 				estack = estack.prev
 			case TryMeElseInstruction( l ) =>
-				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr, h )
+				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr.size, h )
 				hb = h
 			case RetryMeElseInstruction( l ) =>
 				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
 				estack = bstack.estack
 				cp = bstack.cp
 				bstack.bp = l.ref
-				unwind( bstack.tr, tr )
-				tr = bstack.tr
+				unwind( bstack.tr )
 				h = bstack.h
 				hb = h
 			case TrustMeInstruction =>
 				compat.Platform.arraycopy( bstack.argregs, 0, x, 0, argc )
 				estack = bstack.estack
 				cp = bstack.cp
-				unwind( bstack.tr, tr )
-				tr = bstack.tr
+				unwind( bstack.tr )
 				h = bstack.h
 				hb = h
 				bstack = bstack.prev
@@ -235,17 +235,37 @@ class WAM
 			println( heap )
 			println
 		}
-		
-		fail
 	}
 	
 	def ref( a: Addr ) = PtrCell( 'ref, a )
 	
 	def str( a: Addr ) = PtrCell( 'str, a )
 	
-	def unwind( a1: Addr, a2: Addr )
+	def backtrack
 	{
+		if (bstack eq null)
+		{
+			println( "no more choice points" )
+			p = -1
+			fail = true
+		}
+		else
+			p = bstack.bp
+	}
+	
+	def unwind( size: Int )
+	{
+		while (tr.size > size)
+		{
+		val a = tr.pop
 		
+			a write ref( a )
+		}
+	}
+	
+	def trail( a: Addr )
+	{
+		tr push a
 	}
 	
 	def unbound( a: Addr ) =
@@ -267,20 +287,28 @@ class WAM
 	def bind( a1: Addr, a2: Addr )
 	{
 		if (unbound( a1 ))
+		{
 			put( a1, a2.read )
+			trail( a1 )
+		}
 		else if (unbound( a2 ))
+		{
 			put( a2, a1.read )
+			trail( a2 )
+		}
 		else
 			sys.error( "neither address is unbound" )
 	}
 	
-	def unify( a1: Addr, a2: Addr )
+	def unify( a1: Addr, a2: Addr ) =
 	{
+	var failure = false
+	
+		pdl.clear
 		pdl push a1
 		pdl push a2
-		fail = false
 		
-		while (!(pdl.isEmpty || fail))
+		while (!(pdl.isEmpty || failure))
 		{
 		val d1 = deref( pdl pop )
 		val d2 = deref( pdl pop )
@@ -304,10 +332,12 @@ class WAM
 							pdl push (v2 + i)
 						}
 					else
-						fail = true
+						failure = true
 				}
 			}
 		}
+		
+		failure
 	}
 }
 
@@ -378,7 +408,7 @@ class Frame( val prev: Frame, val cp: Int, n: Int )
 	val perm = new Store( "Y", n )
 }
 
-class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Addr, val h: Addr )
+class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Int, val h: Addr )
 {
 	val argregs = regs.take( n ).toVector
 }
@@ -412,6 +442,8 @@ class Addr( val store: Store, val ind: Int ) extends Ordered[Addr]
 {
 	def read = store(ind)
 
+	def write( c: Cell ) = store(ind) = c
+	
 	def compare( that: Addr ) =
 	{
 		if (store ne that.store)
