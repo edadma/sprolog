@@ -94,22 +94,22 @@ object Prolog
 							permmap.get(v) match
 							{
 								case None =>
-									val res = Var( true, v, 0, r )
+									val res = Var( v, 0, r )
 									
 									varmap(v) = (0, r)
 									r += 1
 									res
 								case Some( p ) =>
-									val res = Var( true, v, 1, p )
+									val res = Var( v, 1, p )
 									
 									varmap(v) = (1, p)
 									res
 							}
 						case Some( (b, n) ) =>
-							Var( false, v, b, n )
+							Var( v, b, n )
 					}
 				case str: StructureAST =>
-					val res = Var( true, null, 0, r )
+					val res = Var( null, 0, r )
 					
 					regmap(r) = str
 					r += 1
@@ -247,20 +247,27 @@ object Prolog
 						
 						arrange( arg )
 						
+					val seen = new HashSet[(Int, Int)]
+					
 						for (e <- eqs)
 						{
 							code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+							seen add (0, e._1)
 							
-							for (Var( initial, v, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
-								if (initial)
-									code += SetVariableInstruction( if (variables) v else null, b, n )
-								else
+							for (Var( s, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
+								if (seen( (b, n) ))
 									code += SetValueInstruction( b, n )
+								else
+								{
+									code += SetVariableInstruction( if (variables) s else null, b, n )
+									seen add (b, n)
+								}
 						}
 				}
 			}
 			
 			code += CallInstruction( FunCell(t.f, t.arity) )
+			varmap.clear
 		}
 
 		code += DeallocateInstruction
@@ -286,6 +293,7 @@ object Prolog
 	val varmap = new HashMap[Symbol, (Int, Int)]
 	var nextreg = p.arity + 1
 	val regmap = new HashMap[Int, StructureAST]
+	val seen = new HashSet[(Int, Int)]
 	
 		for (arg <- 1 to p.arity)
 		{
@@ -316,12 +324,16 @@ object Prolog
 					val e = regmap(arg)
 					
 					code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
+					seen add (0, arg)
 					
-					for (Var( initial, _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
-						if (initial)
-							code += UnifyVariableInstruction( b, n )
-						else
+					for (Var( _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
+						if (seen( (b, n) ))
 							code += UnifyValueInstruction( b, n )
+						else
+						{
+							code += UnifyVariableInstruction( b, n )
+							seen add (b, n)
+						}
 			}
 		}
 
@@ -329,11 +341,14 @@ object Prolog
 		{
 			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 			
-			for (Var( initial, _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
-				if (initial)
-					code += UnifyVariableInstruction( b, n )
-				else
+			for (Var( _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
+				if (seen( (b, n) ))
 					code += UnifyValueInstruction( b, n )
+				else
+				{
+					code += UnifyVariableInstruction( b, n )
+					seen add (b, n)
+				}
 		}
 		
 		varmap
@@ -419,14 +434,11 @@ object Prolog
 	
 // 	def print( code: Seq[Instruction] )
 // 	{
-// 		def fun( f: FunCell ) = f.f.name + '/' + f.n
-// 		
 // 		for (i <- 0 until code.size)
 // 		{
 // 			code(i) match
 // 			{
 // 			case PutStructureInstruction( f, i ) =>
-// 				println( "put_structure" + fun(f)
 // 			case SetVariableInstruction( v, b, i ) =>
 // 			case SetValueInstruction( b, i ) =>
 // 			case GetStructureInstruction( f, i ) =>
@@ -447,7 +459,7 @@ object Prolog
 // 		}
 // 	}
 	
-	case class Var( initial: Boolean, v: Symbol, bank: Int, reg: Int ) extends AST
+	case class Var( v: Symbol, bank: Int, reg: Int ) extends AST
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
 }

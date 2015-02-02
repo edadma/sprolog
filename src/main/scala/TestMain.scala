@@ -27,7 +27,7 @@ object TestMain extends App
 	val p = Prolog.parseProgram( """
 X = X.
 
-p( [a, b] ).
+p( f(a), X ).
 """ )
 	val pc = Prolog.program( p )
 
@@ -35,10 +35,10 @@ p( [a, b] ).
 	wam.program = pc
 	
 //  	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
- 	val q = Prolog.parseQuery( "p( X )." )
+ 	val q = Prolog.parseQuery( "p( A, A )." )
 	val qc = Prolog.query( q )
 	
-//	println( qc )
+	println( qc )
 	
 	if (wam execute qc)
 		println( "no" )
