@@ -45,7 +45,7 @@ class WAM
 	
 	def bindings = SortedMap[String, AST]( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
 
-	def alternative = !fail
+	def success = !fail
 	
 	def continue =
 		if (fail)

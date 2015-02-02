@@ -1,6 +1,6 @@
 package ca.hyperreal.sprolog
 
-import java.io.{Reader, StringReader}
+import java.io.{Reader, StringReader, ByteArrayOutputStream, PrintStream}
 
 import collection.mutable.{ListBuffer, ArrayBuffer, HashMap, HashSet}
 
@@ -190,7 +190,7 @@ object Prolog
 		vars.toList
 	}
 	
-	def query( q: StructureAST ) =
+	def compileQuery( q: StructureAST ) =
 	{
 	val code = new ArrayBuffer[Instruction]
 	val permvars = permanent( q, new HashSet[Symbol] )
@@ -416,7 +416,39 @@ object Prolog
 		}
 	}
 	
-	def program( cs: List[StructureAST] ) =
+	def program( p: String ) = compileProgram( parseProgram(p) )
+	
+	def query( p: Program, q: String ) =
+	{
+	val wam = new WAM
+	val buf = new StringBuilder
+	val out = new ByteArrayOutputStream
+	
+		wam.program = p
+		Console.withOut( new PrintStream(out, true) )( execute(wam, compileQuery( parseQuery(q) )) )
+		out.toString
+	}
+	
+	def execute( wam: WAM, qc: Query )
+	{
+		if (wam execute qc)
+			println( "no" )
+		else
+		{
+			if (wam.bindings isEmpty)
+				println( "yes" )
+			else
+			{
+				while (wam.success)
+				{
+					println( Prolog.display(wam.bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+					wam.continue
+				}
+			}
+		}
+	}
+	
+	def compileProgram( cs: List[StructureAST] ) =
 	{
 	val proctype = new HashMap[FunCell, Int]
 	val proclabel = new HashMap[FunCell, Label]

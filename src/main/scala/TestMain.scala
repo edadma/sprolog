@@ -25,35 +25,31 @@ object TestMain extends App
 // 
 // """ )
 	val p = Prolog.parseProgram( """
-X = X.
+%X = X.
 
-member( X, [X|_] ).
-member( X, [_|T] ) :- member( X, T ).
+%member( X, [X|_] ).
+%member( X, [_|T] ) :- member( X, T ).
+
+reverse(List, Reversed) :-
+          reverse(List, [], Reversed).
+
+reverse([], Reversed, Reversed).
+reverse([Head|Tail], SoFar, Reversed) :-
+          reverse(Tail, [Head|SoFar], Reversed).
+
+%append([],L,L).
+%append([H|T],L,[H|LT]):-append(T,L,LT).
 """ )
-	val pc = Prolog.program( p )
+	val pc = Prolog.compileProgram( p )
 
 //	println( pc )
 	wam.program = pc
 	
 //  	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
- 	val q = Prolog.parseQuery( "S1 = [a, b, c, e], S2 = [d, a, e, c], member( C, S1 ), member( C, S2 )." )
-	val qc = Prolog.query( q )
+ 	val q = Prolog.parseQuery( "reverse( [a, b, c], L )." )
+	val qc = Prolog.compileQuery( q )
 	
 //	println( qc )
 	
-	if (wam execute qc)
-		println( "no" )
-	else
-	{
-		if (wam.bindings isEmpty)
-			println( "yes" )
-		else
-		{
-			while (wam.alternative)
-			{
-				println( Prolog.display(wam.bindings) )
-				wam.continue
-			}
-		}
-	}
+	Prolog.execute( wam, qc )
 }
