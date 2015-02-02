@@ -8,7 +8,7 @@ class WAM
 {
 	var program: Program = _
 	
-	protected val trace = false
+	protected val trace = true
 	protected val step = false
 	protected val QUERY = 1000000000	
 	protected val heap = new Store( "H", 10000 )

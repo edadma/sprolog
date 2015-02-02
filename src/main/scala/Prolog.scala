@@ -269,6 +269,7 @@ object Prolog
 			
 			code += CallInstruction( FunCell(t.f, t.arity) )
 			varmap.clear
+			seen.clear
 		}
 
 		code += DeallocateInstruction
