@@ -202,6 +202,7 @@ object Prolog
 		for (t <- conjunctive( q ))
 		{
 		var nextreg = t.arity + 1
+		val seen = new HashSet[(Int, Int)]
 		
 			for (arg <- 1 to t.arity)
 			{
@@ -216,10 +217,12 @@ object Prolog
 									case None =>
 										code += PutVariableInstruction( if (variables) v else null, 0, nextreg, arg )
 										varmap(v) = (0, nextreg)
+										seen add (0, nextreg)
 										nextreg += 1
 									case Some( n ) =>
 										code += PutVariableInstruction( if (variables) v else null, 1, n, arg )
 										varmap(v) = (1, n)
+										seen add (1, n)
 								}
 							case Some( (b, n) ) =>
 								code += PutValueInstruction( b, n, arg )
@@ -247,8 +250,6 @@ object Prolog
 						
 						arrange( arg )
 						
-					val seen = new HashSet[(Int, Int)]
-					
 						for (e <- eqs)
 						{
 							code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
@@ -308,10 +309,12 @@ object Prolog
 								case None =>
 									code += GetVariableInstruction( 0, nextreg, arg )
 									varmap(v) = (0, nextreg)
+									seen add (0, nextreg)
 									nextreg += 1
 								case Some( n ) =>
 									code += GetVariableInstruction( 1, n, arg )
 									varmap(v) = (1, n)
+									seen add (1, n)
 							}
 						case Some( (b, n) ) =>
 							code += GetValueInstruction( b, n, arg )

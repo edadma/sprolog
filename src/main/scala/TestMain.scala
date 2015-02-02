@@ -25,17 +25,16 @@ object TestMain extends App
 // 
 // """ )
 	val p = Prolog.parseProgram( """
-X = X.
-
-p( f(a), X ).
+member(X,[X|_]).
+member(X,[_|T]) :- member(X,T).
 """ )
 	val pc = Prolog.program( p )
 
-//	println( pc )
+	println( pc )
 	wam.program = pc
 	
 //  	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
- 	val q = Prolog.parseQuery( "p( A, A )." )
+ 	val q = Prolog.parseQuery( "member( M, [a, b, c] )." )
 	val qc = Prolog.query( q )
 	
 	println( qc )
