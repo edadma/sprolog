@@ -54,7 +54,7 @@ q( b, u ).
 //	val q = Prolog.parse( "p( f(X), h(Y, f(a)), Y ) = p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
 // 	val q = Prolog.parseQuery( "q( X, Z ), r( Z, Y ), a = Z." )
 // 	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
-	val q = Prolog.parseQuery( "q( A, B ), C = asdf." )
+	val q = Prolog.parseQuery( "q( A, B ), C = asdf." )//C = u  produces a different result!!!
 	val qc = Prolog.query( q )
 	
 	println( qc )

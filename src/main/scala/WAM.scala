@@ -232,7 +232,7 @@ class WAM
 				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr.size, h )
 				hb = h
 			case RetryMeElseInstruction( l ) =>
-				bstack.argregs copyToBuffer x
+				bstack.restore
 				estack = bstack.estack
 				regs(1) = estack.perm
 				cp = bstack.cp
@@ -241,7 +241,7 @@ class WAM
 				h = bstack.h
 				hb = h
 			case TrustMeInstruction =>
-				bstack.argregs copyToBuffer x
+				bstack.restore
 				estack = bstack.estack
 				regs(1) = estack.perm
 				cp = bstack.cp
@@ -428,7 +428,13 @@ class Frame( val prev: Frame, val cp: Int, n: Int )
 
 class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Int, val h: Addr )
 {
-	val argregs = regs.take( n ).toVector
+	val argregs = regs.take( n + 1 ).toVector
+	
+	def restore
+	{
+		for (i <- 0 until n)
+			regs(i) = argregs(i)
+	}
 }
 
 class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
