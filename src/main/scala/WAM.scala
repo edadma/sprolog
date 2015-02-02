@@ -109,7 +109,7 @@ class WAM
 		{
 			case PtrCell( 'ref, a ) => a.store.name + a.ind
 			case PtrCell( 'str, p ) => str( p )
-			case _: FunCell => str( deref(a) )
+//			case _: FunCell => str( deref(a) )
 		}
 	}
 	
@@ -173,26 +173,29 @@ class WAM
 				mode match
 				{
 					case ReadMode =>
-						put( regs(b), i, s.read )
+						put( regs(b), i, s.read )							
+						s += 1
 					case WriteMode =>
 						put( h, ref(h) )
 						put( regs(b), i, h.read )
 						h += 1
 				}
 				
-				s += 1
+//				s += 1
 			case UnifyValueInstruction( b, i ) =>
 				mode match
 				{
 					case ReadMode =>
 						if (unify( new Addr(regs(b), i), s ))
 							backtrack
+							
+						s += 1
 					case WriteMode =>
 						put( h, regs(b)(i) )
 						h += 1
 				}
 				
-				s += 1
+//				s += 1
 			case PutVariableInstruction( v, b, n, i ) =>
 				variable( v, b, n, h )
 				put( h, ref(h) )

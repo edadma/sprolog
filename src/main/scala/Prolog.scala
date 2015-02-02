@@ -19,6 +19,7 @@ object Prolog
 					case 'string => StringAST( value.s )
 					case 'integer => NumberAST( value.s.toInt )
 					case 'variable => VariableAST( Symbol(value.s) )
+					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty )
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
 				}
 			
