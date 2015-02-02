@@ -35,18 +35,18 @@ object TestMain extends App
   	val p = Prolog.parseProgram( """
 X = X.
 
-p( a ).
+%p( a ).
 %p( b ).
 
 q( a, u ).
-q( b, v ).
-q( c, u ).
+%q( b, v ).
+q( b, u ).
 
-r( X, Y ) :- q( X, Y ).
+%r( X, Y ) :- q( X, Y ).
  """ )
 	val pc = Prolog.program( p )
 
-//	println( pc )
+	println( pc )
 	wam.program = pc
 	
 //	val q = Prolog.parse( "p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
@@ -54,10 +54,10 @@ r( X, Y ) :- q( X, Y ).
 //	val q = Prolog.parse( "p( f(X), h(Y, f(a)), Y ) = p( Z, h(Z, W), f(W) )." )._1.asInstanceOf[StructureAST]
 // 	val q = Prolog.parseQuery( "q( X, Z ), r( Z, Y ), a = Z." )
 // 	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
-	val q = Prolog.parseQuery( "r( A, B ), B = u." )
+	val q = Prolog.parseQuery( "q( A, B ), C = asdf." )
 	val qc = Prolog.query( q )
 	
-//	println( qc )
+	println( qc )
 	
 	if (wam execute qc)
 		println( "no" )

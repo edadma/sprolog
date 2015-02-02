@@ -93,18 +93,25 @@ class WAM
 		}
 	
 	protected def read( a: Addr ): String =
+	{
+		def str( p: Addr ) =
+		{
+		val FunCell( f, n ) = p.read
+			
+			if (n == 0)
+				f.name
+			else
+				f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
+//				f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
+		}
+		
 		deref( a ).read match
 		{
 			case PtrCell( 'ref, a ) => a.store.name + a.ind
-			case PtrCell( 'str, p ) =>
-				val FunCell( f, n ) = p.read
-				
-				if (n == 0)
-					f.name
-				else
- 					f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
-//					f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
+			case PtrCell( 'str, p ) => str( p )
+			case _: FunCell => str( deref(a) )
 		}
+	}
 	
 	protected def variable( v: Symbol, b: Int, n: Int, a: Addr )
 	{
@@ -167,28 +174,25 @@ class WAM
 				{
 					case ReadMode =>
 						put( regs(b), i, s.read )
-						s += 1
 					case WriteMode =>
 						put( h, ref(h) )
 						put( regs(b), i, h.read )
 						h += 1
 				}
-/*				
-				s += 1*/
+				
+				s += 1
 			case UnifyValueInstruction( b, i ) =>
 				mode match
 				{
 					case ReadMode =>
 						if (unify( new Addr(regs(b), i), s ))
 							backtrack
-							
-						s += 1
 					case WriteMode =>
 						put( h, regs(b)(i) )
 						h += 1
 				}
-/*				
-				s += 1*/
+				
+				s += 1
 			case PutVariableInstruction( v, b, n, i ) =>
 				variable( v, b, n, h )
 				put( h, ref(h) )
@@ -243,7 +247,7 @@ class WAM
 				cp = bstack.cp
 				unwind( bstack.tr )
 				h = bstack.h
-				hb = h
+				hb = h	// this may be wrong, pg. 57 wambook.pdf
 				bstack = bstack.prev
 		}
 		
@@ -311,8 +315,6 @@ class WAM
 		}
 		else
 		{
-			println( a1.store )
-			println( a2.ind )
 			sys.error( "neither address is unbound" )
 		}
 	}
