@@ -8,7 +8,7 @@ class WAM
 {
 	var program: Program = _
 	
-	protected val trace = true
+	protected val trace = false
 	protected val step = false
 	protected val QUERY = 1000000000	
 	protected val heap = new Store( "H", 10000 )
@@ -145,7 +145,10 @@ class WAM
 					case PtrCell( 'ref, _ ) =>
 						put( h, str(h + 1) )
 						put( h + 1, f )
-						bind( addr, h )
+						
+//						if (addr != h)
+							bind( addr, h )
+							
 						h += 2
 						mode = WriteMode
 					case PtrCell( 'str, a ) =>
@@ -214,9 +217,13 @@ class WAM
 				estack = new Frame( estack, cp, n )
 				regs(1) = estack.perm
 			case DeallocateInstruction =>
-				regs(1) = estack.perm
 				p = estack.cp
 				estack = estack.prev
+				
+				if (estack eq null)
+					regs(1) = null
+				else
+					regs(1) = estack.perm
 			case TryMeElseInstruction( l ) =>
 				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr.size, h )
 				hb = h
@@ -303,7 +310,11 @@ class WAM
 			trail( a2 )
 		}
 		else
+		{
+			println( a1.store )
+			println( a2.ind )
 			sys.error( "neither address is unbound" )
+		}
 	}
 	
 	protected def unify( a1: Addr, a2: Addr ) =

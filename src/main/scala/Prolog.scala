@@ -416,6 +416,36 @@ object Prolog
 		new Program( code.toVector, procmap.toMap )
 	}
 	
+// 	def print( code: Seq[Instruction] )
+// 	{
+// 		def fun( f: FunCell ) = f.f.name + '/' + f.n
+// 		
+// 		for (i <- 0 until code.size)
+// 		{
+// 			code(i) match
+// 			{
+// 			case PutStructureInstruction( f, i ) =>
+// 				println( "put_structure" + fun(f)
+// 			case SetVariableInstruction( v, b, i ) =>
+// 			case SetValueInstruction( b, i ) =>
+// 			case GetStructureInstruction( f, i ) =>
+// 			case UnifyVariableInstruction( b, i ) =>
+// 			case UnifyValueInstruction( b, i ) =>
+// 			case PutVariableInstruction( v, b, n, i ) =>
+// 			case PutValueInstruction( b, n, i ) =>
+// 			case GetVariableInstruction( b, n, i ) =>
+// 			case GetValueInstruction( b, n, i ) =>
+// 			case CallInstruction( f ) =>
+// 			case ProceedInstruction =>
+// 			case AllocateInstruction( n ) =>
+// 			case DeallocateInstruction =>
+// 			case TryMeElseInstruction( l ) =>
+// 			case RetryMeElseInstruction( l ) =>
+// 			case TrustMeInstruction =>
+// 			}
+// 		}
+// 	}
+	
 	case class Var( initial: Boolean, v: Symbol, bank: Int, reg: Int ) extends AST
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
