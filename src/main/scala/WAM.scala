@@ -123,7 +123,7 @@ class WAM
 	{
 		if (trace)
 		{
-			println( inst )
+			println( s"${p - 1}: $inst" )
 			
 			if (step)
 				io.StdIn.readLine
@@ -432,7 +432,7 @@ class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: 
 	
 	def restore
 	{
-		for (i <- 0 until n)
+		for (i <- 0 until n + 1)
 			regs(i) = argregs(i)
 	}
 }
