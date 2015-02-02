@@ -35,6 +35,8 @@ object Prolog
 	
 	val COMMA = Symbol( "," )
 	val RULE = Symbol( ":-" )
+	val DOT = Symbol( "." )
+	val NIL = Symbol( "[]" )
 	
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
 	
@@ -268,7 +270,17 @@ object Prolog
 			}
 			
 			code += CallInstruction( FunCell(t.f, t.arity) )
-			varmap.clear
+			
+			for ((k, v) <- varmap)
+				if (v._1 == 0)
+					varmap -= k
+
+//			varmap.clear
+			
+// 			for (e <- seen)
+// 				if (e._1 == 0)
+// 					seen -= e
+					
 			seen.clear
 		}
 
@@ -466,4 +478,30 @@ object Prolog
 	case class Var( v: Symbol, bank: Int, reg: Int ) extends AST
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
+
+	def isList( a: AST ): Boolean =
+		a match
+		{
+			case StructureAST( NIL, IndexedSeq() ) => true
+			case StructureAST( DOT, IndexedSeq(head, tail) ) if isList( tail ) => true
+			case _ => false
+		}
+		
+	def toList( l: StructureAST ): List[AST] =
+		l match
+		{
+			case StructureAST( NIL, IndexedSeq() ) => Nil
+			case StructureAST( DOT, IndexedSeq(head, tail: StructureAST) ) => head :: toList( tail )
+		}
+		
+	def display( a: AST ): String =
+		a match
+		{
+			case VariableAST( s ) => s.name
+			case StructureAST( f, IndexedSeq() ) => f.name
+			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
+			case StructureAST( f, args ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
+		}
+		
+	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}
 }

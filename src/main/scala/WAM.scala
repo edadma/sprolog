@@ -8,7 +8,7 @@ class WAM
 {
 	var program: Program = _
 	
-	protected val trace = true
+	protected val trace = false
 	protected val step = false
 	protected val QUERY = 1000000000	
 	protected val heap = new Store( "H", 10000 )
@@ -43,7 +43,7 @@ class WAM
 		run
 	}
 	
-	def bindings = SortedMap( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
+	def bindings = SortedMap[String, AST]( vars.toSeq.map( {case (k: Symbol, a: Addr) => k.name -> read( a )} ): _* )
 
 	def alternative = !fail
 	
@@ -92,24 +92,20 @@ class WAM
 			case _ => a
 		}
 	
-	protected def read( a: Addr ): String =
+	protected def read( a: Addr ): AST =
 	{
 		def str( p: Addr ) =
 		{
 		val FunCell( f, n ) = p.read
-			
-			if (n == 0)
-				f.name
-			else
-				f.name + "(" + (for (i <- 1 to n) yield read( p + i )).mkString(",") + ")"
+		
+			StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
 //				f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
 		}
 		
 		deref( a ).read match
 		{
-			case PtrCell( 'ref, a ) => a.store.name + a.ind
+			case PtrCell( 'ref, a ) => VariableAST( Symbol(a.store.name + a.ind) )
 			case PtrCell( 'str, p ) => str( p )
-//			case _: FunCell => str( deref(a) )
 		}
 	}
 	
@@ -132,10 +128,13 @@ class WAM
 		inst match
 		{
 			case PutStructureInstruction( f, i ) =>
-				put( h, str(h + 1) )
-				put( h + 1, f )
-				put( x, i, h.read )
-				h += 2
+				put( h, f )
+				put( x, i, str(h) )
+				h += 1
+// 				put( h, str(h + 1) )
+// 				put( h + 1, f )
+// 				put( x, i, h.read )
+// 				h += 2
 			case SetVariableInstruction( v, b, i ) =>
 				variable( v, b, i, h )
 				put( h, ref(h) )

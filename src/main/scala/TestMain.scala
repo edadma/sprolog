@@ -26,19 +26,20 @@ object TestMain extends App
 // """ )
 	val p = Prolog.parseProgram( """
 X = X.
-%member(X,[X|_]).
-%member(X,[_|T]) :- member(X,T).
+
+member( X, [X|_] ).
+member( X, [_|T] ) :- member( X, T ).
 """ )
 	val pc = Prolog.program( p )
 
-	println( pc )
+//	println( pc )
 	wam.program = pc
 	
 //  	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
- 	val q = Prolog.parseQuery( "L = a, L = b." )
+ 	val q = Prolog.parseQuery( "S1 = [a, b, c, e], S2 = [d, a, e, c], member( C, S1 ), member( C, S2 )." )
 	val qc = Prolog.query( q )
 	
-	println( qc )
+//	println( qc )
 	
 	if (wam execute qc)
 		println( "no" )
@@ -48,14 +49,11 @@ X = X.
 			println( "yes" )
 		else
 		{
-// 			while (wam.alternative)
-// 			{
-				println( wam.bindings )
-// 				wam.continue
-// 			}
-				
-// 			if (wam.alternative)
-// 				println( wam.bindings )
+			while (wam.alternative)
+			{
+				println( Prolog.display(wam.bindings) )
+				wam.continue
+			}
 		}
 	}
 }
