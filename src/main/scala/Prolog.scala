@@ -430,6 +430,17 @@ object Prolog
 		out.toString.trim
 	}
 	
+	def queryFirst( p: Program, q: String ) =
+	{
+	val wam = new WAM
+	val buf = new StringBuilder
+	val out = new ByteArrayOutputStream
+	
+		wam.program = p
+		Console.withOut( new PrintStream(out, true) ) {wam queryFirst compileQuery(parseQuery(q))}
+		out.toString.trim
+	}
+	
 	def compileProgram( cs: List[StructureAST] ) =
 	{
 	val proctype = new HashMap[FunCell, Int]
@@ -477,26 +488,26 @@ object Prolog
 			println( code(i) match
 				{
 				case PutStructureInstruction( f, i )		=> s"put_structure $f, $i"
-				case SetVariableInstruction( v, b, i )	=> s"set_variable $v, $b, $i"
+				case SetVariableInstruction( v, b, i )		=> s"set_variable $v, $b, $i"
 				case SetValueInstruction( b, i )			=> s"set_value $b $i"
 				case GetStructureInstruction( f, i )		=> s"get_structure $f, $i"
 				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b $i"
-				case UnifyValueInstruction( b, i )		=> s"unify_value $b $i"
+				case UnifyValueInstruction( b, i )			=> s"unify_value $b $i"
 				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v $b $n $i"
-				case PutValueInstruction( b, n, i )		=> s"put_value $b $n $i"
-				case GetVariableInstruction( b, n, i )	=> s"get_variable $b $n $i"
-				case GetValueInstruction( b, n, i )		=> s"get_value $b $n $i"
-				case CallInstruction( f )				=> s"call $f"
-				case ProceedInstruction					=> "proceed"
+				case PutValueInstruction( b, n, i )			=> s"put_value $b $n $i"
+				case GetVariableInstruction( b, n, i )		=> s"get_variable $b $n $i"
+				case GetValueInstruction( b, n, i )			=> s"get_value $b $n $i"
+				case CallInstruction( f )					=> s"call $f"
+				case ProceedInstruction						=> "proceed"
 				case AllocateInstruction( n )				=> s"allocate $n"
-				case DeallocateInstruction				=> "deallocate"
-				case TryMeElseInstruction( l )			=>
+				case DeallocateInstruction					=> "deallocate"
+				case TryMeElseInstruction( l )				=>
 					labels(l.ref) = l
 					s"try_me_else $l"
 				case RetryMeElseInstruction( l )			=>
 					labels(l.ref) = l
 					s"retry_me_else $l"
-				case TrustMeInstruction					=> "trust_me"
+				case TrustMeInstruction						=> "trust_me"
 				} )
 		}
 	}

@@ -26,18 +26,16 @@ object TestMain extends App
  	val p = Prolog.parseProgram( """
 		X = X.
 		
-		delete( X, [X|R], R ).
-		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
+		member( X, [X|_] ).
+		member( X, [_|T] ) :- member( X, T ).
 		
-		permutation( [], [] ).
-		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
 		""" )
 	val pc = Prolog.compileProgram( p )
 
 //	Prolog.listing( pc.code )
 	wam.program = pc
 	
-  	val q = Prolog.parseQuery( "permutation( [a, b, c], P )." )
+  	val q = Prolog.parseQuery( "intersection( [a, b, c, d], [b, c, d, e], L )." )
 	val qc = Prolog.compileQuery( q )
 
 // 	println

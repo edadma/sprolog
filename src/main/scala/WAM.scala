@@ -48,6 +48,19 @@ class WAM
 		}
 	}
 	
+	def queryFirst( qc: Query )
+	{
+		if (execute( qc ))
+			println( "no" )
+		else
+		{
+			if (bindings isEmpty)
+				println( "yes" )
+			else
+				println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+		}
+	}
+	
 	def execute( q: Query ) =
 	{
 		fail = false
