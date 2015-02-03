@@ -270,7 +270,7 @@ object Prolog
 				}
 			}
 			
-			code += CallInstruction( FunCell(t.f, t.arity) )
+			code += CallInstruction( Indicator(t.f, t.arity) )
 			
 			for ((k, v) <- varmap)
 				if (v._1 == 0)
@@ -371,14 +371,14 @@ object Prolog
 		varmap
 	}
 	
-	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[FunCell, Int],
-				proctype: HashMap[FunCell, Int], proclabel: HashMap[FunCell, Label] )
+	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
+				proctype: HashMap[Indicator, Int], proclabel: HashMap[Indicator, Label] )
 	{
 	val pred =
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => FunCell( h.f, h.arity )
-			case f: StructureAST => FunCell( f.f, f.arity )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => Indicator( h.f, h.arity )
+			case f: StructureAST => Indicator( f.f, f.arity )
 		}
 		
 		if (procmap contains pred)
@@ -443,9 +443,9 @@ object Prolog
 	
 	def compileProgram( cs: List[StructureAST] ) =
 	{
-	val proctype = new HashMap[FunCell, Int]
-	val proclabel = new HashMap[FunCell, Label]
-	val procmap = new HashMap[FunCell, Int]
+	val proctype = new HashMap[Indicator, Int]
+	val proclabel = new HashMap[Indicator, Label]
+	val procmap = new HashMap[Indicator, Int]
 	
 		for (c <- cs)
 		{
@@ -453,9 +453,9 @@ object Prolog
 			c match
 			{
 			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) =>
-				FunCell( h.f, h.arity )
+				Indicator( h.f, h.arity )
 			case f: StructureAST =>
-				FunCell( f.f, f.arity )
+				Indicator( f.f, f.arity )
 			}
 			
 			if (proctype contains pred)

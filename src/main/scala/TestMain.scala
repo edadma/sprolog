@@ -28,14 +28,13 @@ object TestMain extends App
 		
 		member( X, [X|_] ).
 		member( X, [_|T] ) :- member( X, T ).
-		
 		""" )
 	val pc = Prolog.compileProgram( p )
 
 //	Prolog.listing( pc.code )
 	wam.program = pc
 	
-  	val q = Prolog.parseQuery( "intersection( [a, b, c, d], [b, c, d, e], L )." )
+  	val q = Prolog.parseQuery( "member( M, [a, b, c] )." )
 	val qc = Prolog.compileQuery( q )
 
 // 	println

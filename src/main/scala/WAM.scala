@@ -244,7 +244,7 @@ class WAM
 				program.procmap.get( f ) match
 				{
 					case Some( loc ) =>
-						argc = f.n
+						argc = f.arity
 						cp = p	//p is incremented prior to instruction execution
 						p = loc
 					case None => backtrack
@@ -406,7 +406,7 @@ case class PutVariableInstruction( v: Symbol, b: Int, n: Int, i: Int ) extends I
 case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
-case class CallInstruction( f: FunCell ) extends Instruction
+case class CallInstruction( f: Indicator ) extends Instruction
 case object ProceedInstruction extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
 case object DeallocateInstruction extends Instruction
@@ -486,7 +486,7 @@ class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
 	}
 }
 
-class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[FunCell, Int] )
+class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[Indicator, Int] )
 {
 	override def toString = code + "\n" + procmap
 }
