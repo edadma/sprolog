@@ -27,29 +27,21 @@ object TestMain extends App
 	val p = Prolog.parseProgram( """
 %X = X.
 
-%member( X, [X|_] ).
-%member( X, [_|T] ) :- member( X, T ).
+reverse( List, Reversed ) :- reverse( List, [], Reversed ).
 
-reverse(List, Reversed) :-
-          reverse(List, [], Reversed).
-
-reverse([], Reversed, Reversed).
-reverse([Head|Tail], SoFar, Reversed) :-
-          reverse(Tail, [Head|SoFar], Reversed).
-
-%append([],L,L).
-%append([H|T],L,[H|LT]):-append(T,L,LT).
+reverse( [], Reversed, Reversed ).
+reverse( [Head|Tail], SoFar, Reversed ) :- reverse( Tail, [Head|SoFar], Reversed ).
 """ )
 	val pc = Prolog.compileProgram( p )
 
-//	println( pc )
+//	Prolog.listing( pc.code )
 	wam.program = pc
 	
 //  	val q = Prolog.parseQuery( "father( A, B ), B = paul." )
  	val q = Prolog.parseQuery( "reverse( [a, b, c], L )." )
 	val qc = Prolog.compileQuery( q )
 	
-//	println( qc )
+//	Prolog.listing( qc.code )
 	
-	Prolog.execute( wam, qc )
+	wam query qc
 }

@@ -201,10 +201,11 @@ object Prolog
 	
 	def body( q: StructureAST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int], varmap: HashMap[Symbol, (Int, Int)], variables: Boolean ) =
 	{
+	val seen = new HashSet[(Int, Int)] ++ varmap.values
+	
 		for (t <- conjunctive( q ))
 		{
 		var nextreg = t.arity + 1
-		val seen = new HashSet[(Int, Int)]
 		
 			for (arg <- 1 to t.arity)
 			{
@@ -277,11 +278,11 @@ object Prolog
 
 //			varmap.clear
 			
-// 			for (e <- seen)
-// 				if (e._1 == 0)
-// 					seen -= e
+			for (e <- seen)
+				if (e._1 == 0)
+					seen -= e
 					
-			seen.clear
+//			seen.clear
 		}
 
 		code += DeallocateInstruction
@@ -425,27 +426,8 @@ object Prolog
 	val out = new ByteArrayOutputStream
 	
 		wam.program = p
-		Console.withOut( new PrintStream(out, true) )( execute(wam, compileQuery( parseQuery(q) )) )
-		out.toString
-	}
-	
-	def execute( wam: WAM, qc: Query )
-	{
-		if (wam execute qc)
-			println( "no" )
-		else
-		{
-			if (wam.bindings isEmpty)
-				println( "yes" )
-			else
-			{
-				while (wam.success)
-				{
-					println( Prolog.display(wam.bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
-					wam.continue
-				}
-			}
-		}
+		Console.withOut( new PrintStream(out, true) ) {wam query compileQuery(parseQuery(q))}
+		out.toString.trim
 	}
 	
 	def compileProgram( cs: List[StructureAST] ) =
@@ -480,32 +462,44 @@ object Prolog
 		new Program( code.toVector, procmap.toMap )
 	}
 	
-// 	def print( code: Seq[Instruction] )
-// 	{
-// 		for (i <- 0 until code.size)
-// 		{
-// 			code(i) match
-// 			{
-// 			case PutStructureInstruction( f, i ) =>
-// 			case SetVariableInstruction( v, b, i ) =>
-// 			case SetValueInstruction( b, i ) =>
-// 			case GetStructureInstruction( f, i ) =>
-// 			case UnifyVariableInstruction( b, i ) =>
-// 			case UnifyValueInstruction( b, i ) =>
-// 			case PutVariableInstruction( v, b, n, i ) =>
-// 			case PutValueInstruction( b, n, i ) =>
-// 			case GetVariableInstruction( b, n, i ) =>
-// 			case GetValueInstruction( b, n, i ) =>
-// 			case CallInstruction( f ) =>
-// 			case ProceedInstruction =>
-// 			case AllocateInstruction( n ) =>
-// 			case DeallocateInstruction =>
-// 			case TryMeElseInstruction( l ) =>
-// 			case RetryMeElseInstruction( l ) =>
-// 			case TrustMeInstruction =>
-// 			}
-// 		}
-// 	}
+	def listing( code: Seq[Instruction] )
+	{
+	val labels = new HashMap[Int, Label]
+	
+		for (i <- 0 until code.size)
+		{
+			print( labels.get( i ) match 
+				{
+					case None => "\t"
+					case Some( l ) => l + ":\n\t"
+				} )
+			
+			println( code(i) match
+				{
+				case PutStructureInstruction( f, i )		=> s"put_structure $f, $i"
+				case SetVariableInstruction( v, b, i )	=> s"set_variable $v, $b, $i"
+				case SetValueInstruction( b, i )			=> s"set_value $b $i"
+				case GetStructureInstruction( f, i )		=> s"get_structure $f, $i"
+				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b $i"
+				case UnifyValueInstruction( b, i )		=> s"unify_value $b $i"
+				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v $b $n $i"
+				case PutValueInstruction( b, n, i )		=> s"put_value $b $n $i"
+				case GetVariableInstruction( b, n, i )	=> s"get_variable $b $n $i"
+				case GetValueInstruction( b, n, i )		=> s"get_value $b $n $i"
+				case CallInstruction( f )				=> s"call $f"
+				case ProceedInstruction					=> "proceed"
+				case AllocateInstruction( n )				=> s"allocate $n"
+				case DeallocateInstruction				=> "deallocate"
+				case TryMeElseInstruction( l )			=>
+					labels(l.ref) = l
+					s"try_me_else $l"
+				case RetryMeElseInstruction( l )			=>
+					labels(l.ref) = l
+					s"retry_me_else $l"
+				case TrustMeInstruction					=> "trust_me"
+				} )
+		}
+	}
 	
 	case class Var( v: Symbol, bank: Int, reg: Int ) extends AST
 	case class RHS( f: Symbol, args: Vector[Var] )

@@ -29,6 +29,25 @@ class WAM
 	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected var argc: Int = _
 	
+	def query( qc: Query )
+	{
+		if (execute( qc ))
+			println( "no" )
+		else
+		{
+			if (bindings isEmpty)
+				println( "yes" )
+			else
+			{
+				while (success)
+				{
+					println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+					continue
+				}
+			}
+		}
+	}
+	
 	def execute( q: Query ) =
 	{
 		fail = false
