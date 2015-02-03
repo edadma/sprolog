@@ -270,6 +270,79 @@ class WAM
 				h = bstack.h
 				hb = h	// this may be wrong, pg. 57 wambook.pdf
 				bstack = bstack.prev
+			case PutConstantInstruction( c, i ) =>
+				put( x, i, ConCell(c) )
+			case GetConstantInstruction( c, i ) =>
+				val addr = deref( x, i )
+				
+				addr.read match
+				{
+					case PtrCell( 'ref, _ ) =>
+						addr write ConCell( c )
+						trail( addr )
+					case ConCell( const ) =>
+						if (const != c)
+							backtrack
+					case _ => backtrack
+				}
+			case SetConstantInstruction( c ) =>
+				put( h, ConCell(c) )
+				h += 1
+			case UnifyConstantInstruction( c ) =>
+				mode match
+				{
+					case ReadMode =>
+						val addr = deref( s )
+						
+						addr.read match
+						{
+							case PtrCell( 'ref, _ ) =>
+								addr write ConCell( c )
+								trail( addr )
+							case ConCell( const ) =>
+								if (const != c)
+									backtrack
+							case _ => backtrack
+						}
+					case WriteMode =>
+						put( h, ConCell(c) )
+						h += 1
+				}
+				
+			case PutListInstruction( i ) =>
+				put( x, i, LisCell(h) )
+			case GetListInstruction( i ) =>
+				val addr = deref( x, i )
+				
+				addr.read match
+				{
+					case PtrCell( 'ref, _ ) =>
+						put( h, LisCell(h + 1) )
+						bind( addr, h )
+						h += 1
+						mode = WriteMode
+					case LisCell( a ) =>
+						s = a
+						mode = ReadMode
+					case _ => backtrack
+				}
+			case SetVoidInstruction( n ) =>
+				for (i <- 0 until n)
+				{
+					put( h, ref(h) )
+					h += 1
+				}
+			case UnifyVoidInstruction( n ) =>
+				mode match
+				{
+					case ReadMode => s += n
+					case WriteMode =>
+						for (i <- 0 until n)
+						{
+							put( h, ref(h) )
+							h += 1
+						}
+				}
 		}
 		
 		if (trace)
@@ -400,10 +473,20 @@ case object DeallocateInstruction extends Instruction
 case class TryMeElseInstruction( l: Label ) extends Instruction
 case class RetryMeElseInstruction( l: Label ) extends Instruction
 case object TrustMeInstruction extends Instruction
+case class PutConstantInstruction( c: Any, i: Int ) extends Instruction
+case class GetConstantInstruction( c: Any, i: Int ) extends Instruction
+case class SetConstantInstruction( c: Any ) extends Instruction
+case class UnifyConstantInstruction( c: Any ) extends Instruction
+case class PutListInstruction( i: Int ) extends Instruction
+case class GetListInstruction( i: Int ) extends Instruction
+case class SetVoidInstruction( n: Int ) extends Instruction
+case class UnifyVoidInstruction( n: Int ) extends Instruction
 
 trait Cell
 case class PtrCell( typ: Symbol, k: Addr ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
+case class ConCell( c: Any ) extends Cell
+case class LisCell( a: Addr ) extends Cell
 
 trait Mode
 case object ReadMode extends Mode
