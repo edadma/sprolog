@@ -289,17 +289,31 @@ object Prolog
 		code.toVector
 	}
 	
-	def fact( f: StructureAST, code: ArrayBuffer[Instruction] )
+	def fact( f: StructureAST, code: ArrayBuffer[Instruction], target: Indicator )
 	{
+	val start = code.length
+	
 		head( f, code, Map.empty )
-		code += ProceedInstruction
+		
+		if (code.length > start && target != null)
+			code(start).target( target )
+		
+		if (code.length == start && target != null)
+			code += ProceedInstruction().target( target )
+		else
+			code += ProceedInstruction()
 	}
 	
-	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction] )
+	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction], target: Indicator )
 	{
 	val permvars = permanent( b, new HashSet ++ structvars(h) )
+	val pred = Indicator(h.f, h.arity)
 	
-		code += AllocateInstruction( permvars.size + 1 )
+		if (target eq null)
+			code += AllocateInstruction( permvars.size + 1 )
+		else
+			code += AllocateInstruction( permvars.size + 1 ).target( pred )
+
 		body( b, code, permvars, head(h, code, permvars), false )
 	}
 	
@@ -380,21 +394,22 @@ object Prolog
 			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => Indicator( h.f, h.arity )
 			case f: StructureAST => Indicator( f.f, f.arity )
 		}
-		
+	var target: Indicator = null
+	
 		if (procmap contains pred)
 		{
 			proclabel( pred ) backpatch code.length
 			
 			if (proctype( pred ) > 1)
 			{
-			val l = new Label
+			val l = new Label( code.length )
 			
-				code += RetryMeElseInstruction( l )
+				code += RetryMeElseInstruction( l ).target( proclabel(pred) )
 				proclabel( pred ) = l
 				proctype( pred ) -= 1
 			}
 			else
-				code += TrustMeInstruction
+				code += TrustMeInstruction().target( proclabel(pred) )
 		}
 		else
 		{
@@ -402,18 +417,20 @@ object Prolog
 			
 			if (proctype( pred ) > 1)
 			{
-			val l = new Label
+			val l = new Label( code.length )
 			
-				code += TryMeElseInstruction( l )
+				code += TryMeElseInstruction( l ).target( pred )
 				proclabel( pred ) = l
 				proctype( pred ) -= 1
 			}
+			else
+				target = pred
 		}
 		
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code )
-			case f: StructureAST => fact( f, code )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code, target )
+			case f: StructureAST => fact( f, code, target )
 		}
 	}
 	
@@ -475,39 +492,33 @@ object Prolog
 	
 	def listing( code: Seq[Instruction] )
 	{
-	val labels = new HashMap[Int, Label]
-	
 		for (i <- 0 until code.size)
 		{
-			print( labels.get( i ) match 
+			print( code(i).label match 
 				{
-					case None => "\t"
-					case Some( l ) => l + ":\n\t"
+					case null => "\t"
+					case l => l + ":\n\t"
 				} )
 			
 			println( code(i) match
 				{
 				case PutStructureInstruction( f, i )		=> s"put_structure $f, $i"
-				case SetVariableInstruction( v, b, i )		=> s"set_variable $v, $b, $i"
+				case SetVariableInstruction( v, b, i )	=> s"set_variable $v, $b, $i"
 				case SetValueInstruction( b, i )			=> s"set_value $b $i"
 				case GetStructureInstruction( f, i )		=> s"get_structure $f, $i"
 				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b $i"
-				case UnifyValueInstruction( b, i )			=> s"unify_value $b $i"
+				case UnifyValueInstruction( b, i )		=> s"unify_value $b $i"
 				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v $b $n $i"
-				case PutValueInstruction( b, n, i )			=> s"put_value $b $n $i"
-				case GetVariableInstruction( b, n, i )		=> s"get_variable $b $n $i"
-				case GetValueInstruction( b, n, i )			=> s"get_value $b $n $i"
-				case CallInstruction( f )					=> s"call $f"
-				case ProceedInstruction						=> "proceed"
+				case PutValueInstruction( b, n, i )		=> s"put_value $b $n $i"
+				case GetVariableInstruction( b, n, i )	=> s"get_variable $b $n $i"
+				case GetValueInstruction( b, n, i )		=> s"get_value $b $n $i"
+				case CallInstruction( f )				=> s"call $f"
+				case ProceedInstruction()				=> "proceed"
 				case AllocateInstruction( n )				=> s"allocate $n"
-				case DeallocateInstruction					=> "deallocate"
-				case TryMeElseInstruction( l )				=>
-					labels(l.ref) = l
-					s"try_me_else $l"
-				case RetryMeElseInstruction( l )			=>
-					labels(l.ref) = l
-					s"retry_me_else $l"
-				case TrustMeInstruction						=> "trust_me"
+				case DeallocateInstruction				=> "deallocate"
+				case TryMeElseInstruction( l )			=> s"try_me_else $l"
+				case RetryMeElseInstruction( l )			=> s"retry_me_else $l"
+				case TrustMeInstruction()				=> "trust_me"
 				} )
 		}
 	}

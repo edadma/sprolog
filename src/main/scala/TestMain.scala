@@ -24,6 +24,8 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
+		p.
+		
 		X = X.
 		
 		member( X, [X|_] ).
@@ -31,14 +33,14 @@ object TestMain extends App
 		""" )
 	val pc = Prolog.compileProgram( p )
 
-//	Prolog.listing( pc.code )
+	Prolog.listing( pc.code )
 	wam.program = pc
 	
   	val q = Prolog.parseQuery( "member( M, [a, b, c] )." )
 	val qc = Prolog.compileQuery( q )
 
-// 	println
-// 	Prolog.listing( qc.code )
+	println
+	Prolog.listing( qc.code )
 	
 	wam query qc
 }
