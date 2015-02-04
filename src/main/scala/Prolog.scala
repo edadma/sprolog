@@ -9,6 +9,11 @@ import ca.hyperreal.rtcep._
 
 object Prolog
 {
+	val COMMA = Symbol( "," )
+	val RULE = Symbol( ":-" )
+	val DOT = Symbol( "." )
+	val NIL = Symbol( "[]" )
+	
 	val parser =
 		new AbstractPrologParser[AST]
 		{
@@ -33,11 +38,13 @@ object Prolog
 					args.map(_.v) )
 		}
 	
-	val COMMA = Symbol( "," )
-	val RULE = Symbol( ":-" )
-	val DOT = Symbol( "." )
-	val NIL = Symbol( "[]" )
-	
+	val vm =
+		new WAM
+		{
+			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
+			addCallable( "fail", 0, _ => backtrack )
+		}
+		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
 	
 	def parseQuery( s: String ) =

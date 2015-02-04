@@ -28,6 +28,36 @@ class WAM
 	protected val vars = new ArrayBuffer[(Symbol, Addr)]
 	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected var argc: Int = _
+	protected val callables = new HashMap[Indicator, WAMInterface => Unit]
+	protected val interface =
+		new WAMInterface( this )
+		{
+			val bstack = wam.bstack
+			
+			val estack = wam.estack
+			
+			val x = wam.x
+			
+			def backtrack = wam.backtrack
+			
+			def unwind( size: Int ) = wam.unwind( size )
+			
+			def trail( a: Addr ) = wam.trail( a )
+			
+			def bind( a1: Addr, a2: Addr ) = wam.bind( a1, a2 )
+			
+			def unify( a1: Addr, a2: Addr ) = wam.unify( a1, a2 )
+		}
+	
+	def addCallable( name: String, arity: Int, callable: WAMInterface => Unit )
+	{
+	val ind = Indicator( Symbol(name), arity )
+	
+		if (callables contains ind)
+			sys.error( s"callable $ind already added" )
+		else
+			callables(ind) = callable
+	}
 	
 	def query( qc: Query )
 	{
@@ -42,7 +72,7 @@ class WAM
 				while (success)
 				{
 					println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
-					continue
+					resume
 				}
 			}
 		}
@@ -79,7 +109,7 @@ class WAM
 
 	def success = !fail
 	
-	def continue =
+	def resume =
 		if (fail)
 			false
 		else
@@ -87,6 +117,41 @@ class WAM
 			backtrack
 			run
 		}
+	
+	def unbound( a: Addr ) =
+		a.read match
+		{
+			case PtrCell('ref, ptr ) if ptr == a => true
+			case _ => false
+		}
+	
+	def deref( store: Store, a: Int ): Addr = deref( new Addr(store, a) )
+	
+	def deref( a: Addr ): Addr =
+		a.read match
+		{
+			case PtrCell( 'ref, v ) if v != a => deref( v )
+			case _ => a
+		}
+	
+	def read( a: Addr ): AST =
+	{
+		def str( p: Addr ) =
+		{
+		val FunCell( f, n ) = p.read
+		
+			StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
+//				f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
+		}
+		
+		deref( a ).read match
+		{
+			case PtrCell( 'ref, a ) => VariableAST( Symbol(a.store.name + a.ind) )
+			case PtrCell( 'str, p ) => str( p )
+		}
+	}
+	
+	def read( arg: Int ): AST = read( new Addr(x, arg) )
 	
 	protected def run =
 	{
@@ -113,32 +178,6 @@ class WAM
 			r ++= Seq.fill[Cell]( index - r.size + 1 )( null )
 			
 		r(index) = c
-	}
-	
-	protected def deref( store: Store, a: Int ): Addr = deref( new Addr(store, a) )
-	
-	protected def deref( a: Addr ): Addr =
-		a.read match
-		{
-			case PtrCell( 'ref, v ) if v != a => deref( v )
-			case _ => a
-		}
-	
-	protected def read( a: Addr ): AST =
-	{
-		def str( p: Addr ) =
-		{
-		val FunCell( f, n ) = p.read
-		
-			StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
-//				f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
-		}
-		
-		deref( a ).read match
-		{
-			case PtrCell( 'ref, a ) => VariableAST( Symbol(a.store.name + a.ind) )
-			case PtrCell( 'str, p ) => str( p )
-		}
 	}
 	
 	protected def variable( v: Symbol, b: Int, n: Int, a: Addr )
@@ -243,11 +282,16 @@ class WAM
 			case CallInstruction( f ) =>
 				program.procmap.get( f ) match
 				{
+					case None =>
+						callables.get( f ) match
+						{
+							case None => backtrack
+							case Some( callable ) => callable( interface )
+						}
 					case Some( loc ) =>
 						argc = f.arity
 						cp = p	//p is incremented prior to instruction execution
 						p = loc
-					case None => backtrack
 				}
 			case ProceedInstruction() =>
 				p = cp
@@ -327,13 +371,6 @@ class WAM
 	{
 		tr push a
 	}
-	
-	protected def unbound( a: Addr ) =
-		a.read match
-		{
-			case PtrCell('ref, ptr ) if ptr == a => true
-			case _ => false
-		}
 
 	protected def bind( a1: Addr, a2: Addr )
 	{
@@ -532,4 +569,21 @@ class Addr( val store: Store, val ind: Int ) extends Ordered[Addr]
 	override def equals( that: Any ) = that.isInstanceOf[Addr] && (this.store eq that.asInstanceOf[Addr].store) && this.ind == that.asInstanceOf[Addr].ind
 	
 	override def toString = s"[${store.name} $ind]"
+}
+
+abstract class WAMInterface( val wam: WAM )
+{
+	val estack: Frame
+	val bstack: Choice
+	val x: Store
+	
+	def backtrack
+	
+	def unwind( size: Int )
+	
+	def trail( a: Addr )
+	
+	def bind( a1: Addr, a2: Addr )
+	
+	def unify( a1: Addr, a2: Addr ): Boolean
 }

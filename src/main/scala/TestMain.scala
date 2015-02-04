@@ -3,7 +3,6 @@ package ca.hyperreal.sprolog
 
 object TestMain extends App
 {
-	val wam = new WAM
 //  	val p = Prolog.parseProgram( """
 // 		X = X.
 // 		
@@ -33,14 +32,14 @@ object TestMain extends App
 		""" )
 	val pc = Prolog.compileProgram( p )
 
-	Prolog.listing( pc.code )
-	wam.program = pc
+//	Prolog.listing( pc.code )
+	Prolog.vm.program = pc
 	
-  	val q = Prolog.parseQuery( "member( M, [a, b, c] )." )
+  	val q = Prolog.parseQuery( "member( M, [f(a), b, c] ), write( M ), fail." )
 	val qc = Prolog.compileQuery( q )
 
-	println
-	Prolog.listing( qc.code )
+// 	println
+// 	Prolog.listing( qc.code )
 	
-	wam query qc
+	Prolog.vm query qc
 }
