@@ -17,14 +17,16 @@ object Prolog
 	val parser =
 		new AbstractPrologParser[AST]
 		{
+			add(  700, 'xfx, "<" )
+		
 			def primary( value: Token ) =
 				value.kind match
 				{
-					case 'atom => StructureAST( Symbol(value.s), IndexedSeq.empty )
-					case 'string => StringAST( value.s )
-					case 'integer => NumberAST( value.s.toInt )
-					case 'variable => VariableAST( Symbol(value.s) )
-					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty )
+					case 'atom => StructureAST( Symbol(value.s), IndexedSeq.empty, value.start.head.pos )
+					case 'string => StringAST( value.s, value.start.head.pos )
+					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
+					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
+					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty, value.start.head.pos )
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
 				}
 			
@@ -35,7 +37,7 @@ object Prolog
 						case 'atom|_: Character => Symbol(functor.s)
 						case s: Symbol => s
 					}),
-					args.map(_.v) )
+					args.map(_.v), functor.start.head.pos )
 		}
 	
 	val vm =
@@ -43,6 +45,7 @@ object Prolog
 		{
 			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
 			addCallable( "fail", 0, _ => backtrack )
+			addCallable( "<", 2, _ => if (read(1).asInstanceOf[StructureAST].f.name >= read(2).asInstanceOf[StructureAST].f.name) backtrack )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
@@ -54,7 +57,7 @@ object Prolog
 		if (rest.head.end || rest.tail.head.end)
 		{
 			if (!query.isInstanceOf[StructureAST])
-				sys.error( "expected a structure/atom" )
+				query.pos.error( "expected a structure/atom" )
 				
 			query.asInstanceOf[StructureAST]
 		}
@@ -74,7 +77,7 @@ object Prolog
 				rest.head.pos.error( "expected '.' following clause" )
 				
 			if (!c.isInstanceOf[StructureAST])
-				sys.error( "expected a structure/atom" )
+				c.pos.error( "expected a structure/atom" )
 				
 			clauses += c.asInstanceOf[StructureAST]
 			
@@ -96,7 +99,7 @@ object Prolog
 		val s1 = StructureAST( s.f, s.args.map (
 			_ match
 			{
-				case VariableAST( v ) =>
+				case VariableAST( v, _ ) =>
 					varmap.get(v) match
 					{
 						case None =>
@@ -140,14 +143,14 @@ object Prolog
 		r
 	}
 	
-	def conjunctive( q: StructureAST ): Stream[StructureAST] =
+	def conjunctive( q: AST ): Stream[StructureAST] =
 		q match
 		{
-			case StructureAST( COMMA, IndexedSeq(left: StructureAST, right: StructureAST ) ) => left #:: conjunctive( right )
-			case StructureAST( COMMA, IndexedSeq(left, right: StructureAST ) ) => sys.error( "left argument not a structure" )
-			case StructureAST( COMMA, IndexedSeq(left: StructureAST, right ) ) => sys.error( "right argument not a structure" )
-			case _: StructureAST => Stream( q )
-			case _ => sys.error( "not a structure" )
+			case StructureAST( COMMA, IndexedSeq(left: StructureAST, right: StructureAST), _ ) => left #:: conjunctive( right )
+			case StructureAST( COMMA, IndexedSeq(_: StructureAST, right), _ ) => right.pos.error( "not a structure" )
+			case StructureAST( COMMA, IndexedSeq(left, _), _ ) => left.pos.error( "not a structure" )
+			case s: StructureAST => Stream( s )
+			case _ => q.pos.error( "not a structure" )
 		}
 	
 	def permanent( q: StructureAST, varset: HashSet[Symbol] ) =
@@ -186,10 +189,11 @@ object Prolog
 		{
 			t match
 			{
-				case VariableAST( v ) => vars += v
-				case StructureAST( _, args ) =>
+				case VariableAST( v, _ ) => vars += v
+				case StructureAST( _, args, _ ) =>
 					for (a <- args)
 						_structvars( a )
+				case _ =>
 			}
 		}
 		
@@ -218,7 +222,7 @@ object Prolog
 			{
 				t.args(arg - 1) match
 				{
-					case VariableAST( v ) =>
+					case VariableAST( v, _ ) =>
 						varmap.get( v ) match
 						{
 							case None =>
@@ -335,7 +339,7 @@ object Prolog
 		{
 			p.args(arg - 1) match
 			{
-				case VariableAST( v ) =>
+				case VariableAST( v, _ ) =>
 					varmap.get( v ) match
 					{
 						case None =>
@@ -398,7 +402,7 @@ object Prolog
 	val pred =
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => Indicator( h.f, h.arity )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) => Indicator( h.f, h.arity )
 			case f: StructureAST => Indicator( f.f, f.arity )
 		}
 	var target: Indicator = null
@@ -436,7 +440,7 @@ object Prolog
 		
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code, target )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) => rule( h, b, code, target )
 			case f: StructureAST => fact( f, code, target )
 		}
 	}
@@ -476,7 +480,7 @@ object Prolog
 		val pred =
 			c match
 			{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) =>
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) =>
 				Indicator( h.f, h.arity )
 			case f: StructureAST =>
 				Indicator( f.f, f.arity )
@@ -510,52 +514,56 @@ object Prolog
 			println( code(i) match
 				{
 				case PutStructureInstruction( f, i )		=> s"put_structure $f, $i"
-				case SetVariableInstruction( v, b, i )	=> s"set_variable $v, $b, $i"
+				case SetVariableInstruction( v, b, i )		=> s"set_variable $v, $b, $i"
 				case SetValueInstruction( b, i )			=> s"set_value $b $i"
 				case GetStructureInstruction( f, i )		=> s"get_structure $f, $i"
 				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b $i"
-				case UnifyValueInstruction( b, i )		=> s"unify_value $b $i"
+				case UnifyValueInstruction( b, i )			=> s"unify_value $b $i"
 				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v $b $n $i"
-				case PutValueInstruction( b, n, i )		=> s"put_value $b $n $i"
-				case GetVariableInstruction( b, n, i )	=> s"get_variable $b $n $i"
-				case GetValueInstruction( b, n, i )		=> s"get_value $b $n $i"
-				case CallInstruction( f )				=> s"call $f"
-				case ProceedInstruction()				=> "proceed"
+				case PutValueInstruction( b, n, i )			=> s"put_value $b $n $i"
+				case GetVariableInstruction( b, n, i )		=> s"get_variable $b $n $i"
+				case GetValueInstruction( b, n, i )			=> s"get_value $b $n $i"
+				case CallInstruction( f )					=> s"call $f"
+				case ProceedInstruction()					=> "proceed"
 				case AllocateInstruction( n )				=> s"allocate $n"
-				case DeallocateInstruction				=> "deallocate"
-				case TryMeElseInstruction( l )			=> s"try_me_else $l"
+				case DeallocateInstruction					=> "deallocate"
+				case TryMeElseInstruction( l )				=> s"try_me_else $l"
 				case RetryMeElseInstruction( l )			=> s"retry_me_else $l"
-				case TrustMeInstruction()				=> "trust_me"
+				case TrustMeInstruction()					=> "trust_me"
 				} )
 		}
 	}
 	
 	case class Var( v: Symbol, bank: Int, reg: Int ) extends AST
+	{
+		val pos: Position = null
+	}
+	
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
 
 	def isList( a: AST ): Boolean =
 		a match
 		{
-			case StructureAST( NIL, IndexedSeq() ) => true
-			case StructureAST( DOT, IndexedSeq(head, tail) ) if isList( tail ) => true
+			case StructureAST( NIL, IndexedSeq(), _ ) => true
+			case StructureAST( DOT, IndexedSeq(head, tail), _ ) if isList( tail ) => true
 			case _ => false
 		}
 		
 	def toList( l: StructureAST ): List[AST] =
 		l match
 		{
-			case StructureAST( NIL, IndexedSeq() ) => Nil
-			case StructureAST( DOT, IndexedSeq(head, tail: StructureAST) ) => head :: toList( tail )
+			case StructureAST( NIL, IndexedSeq(), _ ) => Nil
+			case StructureAST( DOT, IndexedSeq(head, tail: StructureAST), _ ) => head :: toList( tail )
 		}
 		
 	def display( a: AST ): String =
 		a match
 		{
-			case VariableAST( s ) => s.name
-			case StructureAST( f, IndexedSeq() ) => f.name
+			case VariableAST( s, _ ) => s.name
+			case StructureAST( f, IndexedSeq(), _ ) => f.name
 			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
-			case StructureAST( f, args ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
+			case StructureAST( f, args, _ ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
 		}
 		
 	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}
