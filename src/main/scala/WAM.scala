@@ -48,6 +48,19 @@ class WAM
 		}
 	}
 	
+	def queryFirst( qc: Query )
+	{
+		if (execute( qc ))
+			println( "no" )
+		else
+		{
+			if (bindings isEmpty)
+				println( "yes" )
+			else
+				println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+		}
+	}
+	
 	def execute( q: Query ) =
 	{
 		fail = false
@@ -231,12 +244,12 @@ class WAM
 				program.procmap.get( f ) match
 				{
 					case Some( loc ) =>
-						argc = f.n
+						argc = f.arity
 						cp = p	//p is incremented prior to instruction execution
 						p = loc
 					case None => backtrack
 				}
-			case ProceedInstruction =>
+			case ProceedInstruction() =>
 				p = cp
 			case AllocateInstruction( n ) =>
 				estack = new Frame( estack, cp, n )
@@ -249,19 +262,19 @@ class WAM
 					regs(1) = null
 				else
 					regs(1) = estack.perm
-			case TryMeElseInstruction( l ) =>
-				bstack = new Choice( bstack, x, argc, estack, cp, l.ref, tr.size, h )
+			case TryMeElseInstruction( t ) =>
+				bstack = new Choice( bstack, x, argc, estack, cp, p + t.offset, tr.size, h )
 				hb = h
-			case RetryMeElseInstruction( l ) =>
+			case RetryMeElseInstruction( t ) =>
 				bstack.restore
 				estack = bstack.estack
 				regs(1) = estack.perm
 				cp = bstack.cp
-				bstack.bp = l.ref
+				bstack.bp = p + t.offset
 				unwind( bstack.tr )
 				h = bstack.h
 				hb = h
-			case TrustMeInstruction =>
+			case TrustMeInstruction() =>
 				bstack.restore
 				estack = bstack.estack
 				regs(1) = estack.perm
@@ -454,7 +467,18 @@ class WAM
 	}
 }
 
-trait Instruction
+abstract class Instruction
+{
+	private var l: Any = _
+	
+	def label = l
+	
+	def target( l: Any ) =
+	{
+		this.l = l
+		this
+	}
+}
 
 case class PutStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class SetVariableInstruction( v: Symbol, b: Int, i: Int ) extends Instruction
@@ -466,13 +490,10 @@ case class PutVariableInstruction( v: Symbol, b: Int, n: Int, i: Int ) extends I
 case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
-case class CallInstruction( f: FunCell ) extends Instruction
-case object ProceedInstruction extends Instruction
+case class CallInstruction( f: Indicator ) extends Instruction
+case class ProceedInstruction() extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
 case object DeallocateInstruction extends Instruction
-case class TryMeElseInstruction( l: Label ) extends Instruction
-case class RetryMeElseInstruction( l: Label ) extends Instruction
-case object TrustMeInstruction extends Instruction
 case class PutConstantInstruction( c: Any, i: Int ) extends Instruction
 case class GetConstantInstruction( c: Any, i: Int ) extends Instruction
 case class SetConstantInstruction( c: Any ) extends Instruction
@@ -481,6 +502,9 @@ case class PutListInstruction( i: Int ) extends Instruction
 case class GetListInstruction( i: Int ) extends Instruction
 case class SetVoidInstruction( n: Int ) extends Instruction
 case class UnifyVoidInstruction( n: Int ) extends Instruction
+case class TryMeElseInstruction( t: Label ) extends Instruction
+case class RetryMeElseInstruction( t: Label ) extends Instruction
+case class TrustMeInstruction() extends Instruction
 
 trait Cell
 case class PtrCell( typ: Symbol, k: Addr ) extends Cell
@@ -492,24 +516,24 @@ trait Mode
 case object ReadMode extends Mode
 case object WriteMode extends Mode
 
-class Label
+class Label( src: Int )
 {
-	private var p: Int = _
+	private var d: Int = _
 	private var set = false
 	
 	val n = Label.next
 	
-	def backpatch( p: Int )
+	def backpatch( targ: Int )
 	{
-		this.p = p
+		d = targ - src - 1
 		set = true
 	}
 	
-	def ref =
+	def offset =
 		if (!set)
 			sys.error( toString )
 		else
-			p
+			d
 	
 	override def toString = "L" + n + (if (!set) " UNPATCHED" else "")
 }
@@ -556,7 +580,7 @@ class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
 	}
 }
 
-class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[FunCell, Int] )
+class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[Indicator, Int] )
 {
 	override def toString = code + "\n" + procmap
 }

@@ -21,7 +21,7 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 resolvers += "Hyperreal Repository" at "http://hyperreal.ca/maven2"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.1.3" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 //scalatest 2.2.1
 
@@ -44,7 +44,7 @@ libraryDependencies ++= Seq(
 	
 //mainClass in (Compile, packageBin) := Some( "ca.hyperreal.myproject.Main" )
 
-//mainClass in (Compile, run) := Some( "ca.hyperreal.myproject.Main" )
+mainClass in (Compile, run) := Some( "ca.hyperreal.sprolog.TestMain" )
 
 //offline := true
 

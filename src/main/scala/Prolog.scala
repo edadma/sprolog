@@ -270,7 +270,7 @@ object Prolog
 				}
 			}
 			
-			code += CallInstruction( FunCell(t.f, t.arity) )
+			code += CallInstruction( Indicator(t.f, t.arity) )
 			
 			for ((k, v) <- varmap)
 				if (v._1 == 0)
@@ -289,17 +289,31 @@ object Prolog
 		code.toVector
 	}
 	
-	def fact( f: StructureAST, code: ArrayBuffer[Instruction] )
+	def fact( f: StructureAST, code: ArrayBuffer[Instruction], target: Indicator )
 	{
+	val start = code.length
+	
 		head( f, code, Map.empty )
-		code += ProceedInstruction
+		
+		if (code.length > start && target != null)
+			code(start).target( target )
+		
+		if (code.length == start && target != null)
+			code += ProceedInstruction().target( target )
+		else
+			code += ProceedInstruction()
 	}
 	
-	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction] )
+	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction], target: Indicator )
 	{
 	val permvars = permanent( b, new HashSet ++ structvars(h) )
+	val pred = Indicator(h.f, h.arity)
 	
-		code += AllocateInstruction( permvars.size + 1 )
+		if (target eq null)
+			code += AllocateInstruction( permvars.size + 1 )
+		else
+			code += AllocateInstruction( permvars.size + 1 ).target( pred )
+
 		body( b, code, permvars, head(h, code, permvars), false )
 	}
 	
@@ -371,30 +385,31 @@ object Prolog
 		varmap
 	}
 	
-	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[FunCell, Int],
-				proctype: HashMap[FunCell, Int], proclabel: HashMap[FunCell, Label] )
+	def clause( c: StructureAST, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
+				proctype: HashMap[Indicator, Int], proclabel: HashMap[Indicator, Label] )
 	{
 	val pred =
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => FunCell( h.f, h.arity )
-			case f: StructureAST => FunCell( f.f, f.arity )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => Indicator( h.f, h.arity )
+			case f: StructureAST => Indicator( f.f, f.arity )
 		}
-		
+	var target: Indicator = null
+	
 		if (procmap contains pred)
 		{
 			proclabel( pred ) backpatch code.length
 			
 			if (proctype( pred ) > 1)
 			{
-			val l = new Label
+			val l = new Label( code.length )
 			
-				code += RetryMeElseInstruction( l )
+				code += RetryMeElseInstruction( l ).target( proclabel(pred) )
 				proclabel( pred ) = l
 				proctype( pred ) -= 1
 			}
 			else
-				code += TrustMeInstruction
+				code += TrustMeInstruction().target( proclabel(pred) )
 		}
 		else
 		{
@@ -402,18 +417,20 @@ object Prolog
 			
 			if (proctype( pred ) > 1)
 			{
-			val l = new Label
+			val l = new Label( code.length )
 			
-				code += TryMeElseInstruction( l )
+				code += TryMeElseInstruction( l ).target( pred )
 				proclabel( pred ) = l
 				proctype( pred ) -= 1
 			}
+			else
+				target = pred
 		}
 		
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code )
-			case f: StructureAST => fact( f, code )
+			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) => rule( h, b, code, target )
+			case f: StructureAST => fact( f, code, target )
 		}
 	}
 	
@@ -430,11 +447,22 @@ object Prolog
 		out.toString.trim
 	}
 	
+	def queryFirst( p: Program, q: String ) =
+	{
+	val wam = new WAM
+	val buf = new StringBuilder
+	val out = new ByteArrayOutputStream
+	
+		wam.program = p
+		Console.withOut( new PrintStream(out, true) ) {wam queryFirst compileQuery(parseQuery(q))}
+		out.toString.trim
+	}
+	
 	def compileProgram( cs: List[StructureAST] ) =
 	{
-	val proctype = new HashMap[FunCell, Int]
-	val proclabel = new HashMap[FunCell, Label]
-	val procmap = new HashMap[FunCell, Int]
+	val proctype = new HashMap[Indicator, Int]
+	val proclabel = new HashMap[Indicator, Label]
+	val procmap = new HashMap[Indicator, Int]
 	
 		for (c <- cs)
 		{
@@ -442,9 +470,9 @@ object Prolog
 			c match
 			{
 			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST) ) =>
-				FunCell( h.f, h.arity )
+				Indicator( h.f, h.arity )
 			case f: StructureAST =>
-				FunCell( f.f, f.arity )
+				Indicator( f.f, f.arity )
 			}
 			
 			if (proctype contains pred)
@@ -464,14 +492,12 @@ object Prolog
 	
 	def listing( code: Seq[Instruction] )
 	{
-	val labels = new HashMap[Int, Label]
-	
 		for (i <- 0 until code.size)
 		{
-			print( labels.get( i ) match 
+			print( code(i).label match 
 				{
-					case None => "\t"
-					case Some( l ) => l + ":\n\t"
+					case null => "\t"
+					case l => l + ":\n\t"
 				} )
 			
 			println( code(i) match
@@ -487,16 +513,12 @@ object Prolog
 				case GetVariableInstruction( b, n, i )	=> s"get_variable $b $n $i"
 				case GetValueInstruction( b, n, i )		=> s"get_value $b $n $i"
 				case CallInstruction( f )				=> s"call $f"
-				case ProceedInstruction					=> "proceed"
+				case ProceedInstruction()				=> "proceed"
 				case AllocateInstruction( n )				=> s"allocate $n"
 				case DeallocateInstruction				=> "deallocate"
-				case TryMeElseInstruction( l )			=>
-					labels(l.ref) = l
-					s"try_me_else $l"
-				case RetryMeElseInstruction( l )			=>
-					labels(l.ref) = l
-					s"retry_me_else $l"
-				case TrustMeInstruction					=> "trust_me"
+				case TryMeElseInstruction( l )			=> s"try_me_else $l"
+				case RetryMeElseInstruction( l )			=> s"retry_me_else $l"
+				case TrustMeInstruction()				=> "trust_me"
 				} )
 		}
 	}

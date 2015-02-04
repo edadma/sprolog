@@ -24,24 +24,23 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
+		p.
+		
 		X = X.
 		
-		delete( X, [X|R], R ).
-		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
-		
-		permutation( [], [] ).
-		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
+		member( X, [X|_] ).
+		member( X, [_|T] ) :- member( X, T ).
 		""" )
 	val pc = Prolog.compileProgram( p )
 
-//	Prolog.listing( pc.code )
+	Prolog.listing( pc.code )
 	wam.program = pc
 	
-  	val q = Prolog.parseQuery( "permutation( [a, b, c], P )." )
+  	val q = Prolog.parseQuery( "member( M, [a, b, c] )." )
 	val qc = Prolog.compileQuery( q )
 
-// 	println
-// 	Prolog.listing( qc.code )
+	println
+	Prolog.listing( qc.code )
 	
 	wam query qc
 }
