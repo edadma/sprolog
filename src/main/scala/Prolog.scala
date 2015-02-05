@@ -45,10 +45,14 @@ object Prolog
 		{
 			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
 			addCallable( "fail", 0, _ => backtrack )
+			addCallable( "=:=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue != read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
+			addCallable( "=\\=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue == read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 			addCallable( "<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue >= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 			addCallable( "=<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue > read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 			addCallable( ">", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue <= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 			addCallable( ">=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue < read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
+			addCallable( "=", 2, _ => if (unify(addr(1), addr(2))) backtrack )
+			addCallable( "\\=", 2, _ => if (!unify(addr(1), addr(2))) backtrack )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
@@ -398,6 +402,7 @@ object Prolog
 							case AtomAST( atom, _ ) =>
 								code += UnifyConstantInstruction( atom )
 						}
+				case _ =>
 			}
 		}
 

@@ -23,16 +23,7 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
-		pivoting( H, [], [], [] ).
-		pivoting( H, [X|T], [X|L], G ) :- X >= H, pivoting( H, T, L, G ).
-		pivoting( H, [X|T], L, [X|G] ) :- X < H, pivoting( H, T, L, G ).
-		
-		quick_sort( List, Sorted ) :- q_sort( List, [], Sorted ).
-		
-		q_sort( [], Acc, Acc ).
-		q_sort( [H|T], Acc, Sorted ):-
-			pivoting( H, T, L1, L2 ),
-			q_sort( L1, Acc, Sorted1 ), q_sort( L2, [H|Sorted1], Sorted ).
+		p( a ).
 		""" )
 	val pc = Prolog.compileProgram( p )
 	val v = Prolog.vm
@@ -40,7 +31,7 @@ object TestMain extends App
 // 	Prolog.listing( pc.code )
 	v.program = pc
 
- 	val q = Prolog.parseQuery( "quick_sort( [7, 4, 6, 5, 2, 9], L )." )
+  	val q = Prolog.parseQuery( """A = 1, A =:= 1.""" )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

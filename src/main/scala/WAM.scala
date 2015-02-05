@@ -158,7 +158,9 @@ class WAM
 		}
 	}
 	
-	def read( arg: Int ): AST = read( new Addr(x, arg) )
+	def addr( arg: Int ) = new Addr(x, arg)
+	
+	def read( arg: Int ): AST = read( addr(arg) )
 	
 	protected def run =
 	{
