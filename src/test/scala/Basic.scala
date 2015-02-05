@@ -20,13 +20,9 @@ class Basic extends FreeSpec with PropertyChecks with Matchers
 		s( a ).
 		s( b ).
 		
-		t( 1 ).
-		t( 2 ).
-		t( 3 ).
-		
-		u( f(1) ).
-		
-		v( g(a) ).
+		t( a ).
+		t( b ).
+		t( c ).		
 		""" )
 	
 		query( p, "A = a." ) shouldBe "A = a"
@@ -43,11 +39,27 @@ class Basic extends FreeSpec with PropertyChecks with Matchers
 				|A = b
 				""".stripMargin.trim
 		query( p, "t( A )." ) shouldBe
-			"""	|A = 1
-				|A = 2
-				|A = 3
+			"""	|A = a
+				|A = b
+				|A = c
 				""".stripMargin.trim
-		query( p, "u( A )." ) shouldBe "A = f(1)"
-		query( p, "v( A )." ) shouldBe "A = g(a)"
+	}
+	
+	"types" in
+	{
+	val p = program( """
+		p( f(a) ).
+		ia( 123 ).
+		ina( f(123) ).
+		sa( `asdf` ).
+		sna( f(`asdf`) ).
+		""" )
+	
+		query( p, "p( A )." ) shouldBe "A = f(a)"
+		query( p, "ia( A )." ) shouldBe "A = 123"
+		query( p, "ina( A )." ) shouldBe "A = f(123)"
+		query( p, "A = `asdf`" ) shouldBe "A = asdf"
+		query( p, "sa( A )." ) shouldBe "A = asdf"
+		query( p, "sna( A )." ) shouldBe "A = f(asdf)"
 	}
 }

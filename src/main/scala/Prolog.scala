@@ -20,6 +20,7 @@ object Prolog
 			def primary( value: Token ) =
 				value.kind match
 				{
+					case 'intsym => NumberAST( value.s.toInt, value.start.head.pos )
  					case 'atom => AtomAST( Symbol(value.s), value.start.head.pos )
 					case 'string => StringAST( value.s, value.start.head.pos )
 					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
@@ -77,18 +78,19 @@ object Prolog
 		
 		def clause( toks: Stream[Token] )
 		{
-		val (c, rest) = parser.parseTokens( toks, '.' )
-		
-			if (rest.head.kind != '.')
-				rest.head.pos.error( "expected '.' following clause" )
-				
-			if (!c.isInstanceOf[StructureAST])
-				c.pos.error( "expected a structure/atom" )
-				
-			clauses += c.asInstanceOf[StructureAST]
+			if (!toks.head.end)
+			{
+			val (c, rest) = parser.parseTokens( toks, '.' )
 			
-			if (!rest.tail.head.end)
+				if (rest.head.kind != '.')
+					rest.head.pos.error( "expected '.' following clause" )
+					
+				if (!c.isInstanceOf[StructureAST])
+					c.pos.error( "expected a structure/atom" )
+					
+				clauses += c.asInstanceOf[StructureAST]			
 				clause( rest.tail )
+			}
 		}
 		
 		clause( parser.scan(new StringReader(s), 4) )
@@ -303,6 +305,8 @@ object Prolog
 						code += PutConstantInstruction( atom, arg )
 					case NumberAST( n, _ ) =>
 						code += PutConstantInstruction( n, arg )
+					case StringAST( s, _ ) =>
+						code += PutConstantInstruction( s, arg )
 				}
 			}
 			
@@ -404,6 +408,8 @@ object Prolog
 								code += UnifyConstantInstruction( atom )
 							case NumberAST( n, _ ) =>
 								code += UnifyConstantInstruction( n )
+							case StringAST( s, _ ) =>
+								code += UnifyConstantInstruction( s )
 							case AnonymousAST( _ ) =>
 								code += UnifyVoidInstruction( 1 )
 						}
@@ -411,6 +417,8 @@ object Prolog
 					code += GetConstantInstruction( atom, arg )
 				case NumberAST( n, _ ) =>
 					code += GetConstantInstruction( n, arg )
+				case StringAST( s, _ ) =>
+					code += GetConstantInstruction( s, arg )
 				case AnonymousAST( _ ) =>
 					code += UnifyVoidInstruction( 1 )
 			}
@@ -611,6 +619,7 @@ object Prolog
 		{
 			case NumberAST( n, _ ) => n.toString
 			case AtomAST( atom, _ ) => atom.name
+			case StringAST( s, _ ) => s
 			case VariableAST( s, _ ) => s.name
 			case StructureAST( f, IndexedSeq(), _ ) => f.name
 			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )

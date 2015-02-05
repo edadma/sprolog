@@ -154,6 +154,7 @@ class WAM
 				{
 					case s: Symbol => AtomAST( s )
 					case n: Number => NumberAST( n )
+					case s: String => StringAST( s )
 				}
 		}
 	}
