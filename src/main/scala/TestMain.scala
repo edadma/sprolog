@@ -23,29 +23,28 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
-		naive_sort( List, Sorted ):- permutation( List, Sorted ), is_sorted( Sorted ).
+		pivoting( H, [], [], [] ).
+		pivoting( H, [X|T], [X|L], G ) :- X >= H, pivoting( H, T, L, G ).
+		pivoting( H, [X|T], L, [X|G] ) :- X < H, pivoting( H, T, L, G ).
 		
-		delete( X, [X|R], R ).
-		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
+		quick_sort( List, Sorted ) :- q_sort( List, [], Sorted ).
 		
-		permutation( [], [] ).
-		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
-
-		is_sorted( [] ).
-		is_sorted( [_] ).
-		is_sorted( [X, Y|T] ) :- X =< Y, is_sorted( [Y|T] ).
+		q_sort( [], Acc, Acc ).
+		q_sort( [H|T], Acc, Sorted ):-
+			pivoting( H, T, L1, L2 ),
+			q_sort( L1, Acc, Sorted1 ), q_sort( L2, [H|Sorted1], Sorted ).
 		""" )
 	val pc = Prolog.compileProgram( p )
-
+	val v = Prolog.vm
+	
 // 	Prolog.listing( pc.code )
-	Prolog.vm.program = pc
+	v.program = pc
 
- 	val q = Prolog.parseQuery( "naive_sort( [7, 4, 6, 5, 2, 9], L )." )
-//	val q = Prolog.parseQuery( "member( N, [7, 4, 6, 5, 2, 9, 3, 1, 8, 0] ), N =< 5." )
+ 	val q = Prolog.parseQuery( "quick_sort( [7, 4, 6, 5, 2, 9], L )." )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
 //  	Prolog.listing( qc.code )
 	
-	Prolog.vm query qc
+	v query qc
 }

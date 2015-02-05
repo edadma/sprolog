@@ -47,6 +47,8 @@ object Prolog
 			addCallable( "fail", 0, _ => backtrack )
 			addCallable( "<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue >= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 			addCallable( "=<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue > read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
+			addCallable( ">", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue <= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
+			addCallable( ">=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue < read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
