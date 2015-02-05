@@ -22,9 +22,11 @@ object Prolog
 			def primary( value: Token ) =
 				value.kind match
 				{
-					case 'atom => StructureAST( Symbol(value.s), IndexedSeq.empty, value.start.head.pos )
+ 					case 'atom => AtomAST( Symbol(value.s), value.start.head.pos )
+//					case 'atom => StructureAST( Symbol(value.s), IndexedSeq.empty, value.start.head.pos )
 					case 'string => StringAST( value.s, value.start.head.pos )
 					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
+//					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
 					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
 					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty, value.start.head.pos )
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
@@ -126,17 +128,19 @@ object Prolog
 					regmap(r) = str
 					r += 1
 					res
+				case a => a
 			}))
 		
 			regmap(reg) = s1
 			
 			for (i <- 0 until s1.arity)
-			{
-			val v = s1.args(i).asInstanceOf[Var]
-			
-				if (v.bank == 0 && regmap.contains( v.reg ))
-					struct( v.reg )
-			}
+				s1.args(i) match
+				{
+					case v: Var =>
+						if (v.bank == 0 && regmap.contains( v.reg ))
+							struct( v.reg )
+					case _ =>
+				}
 		}
 		
 		struct( outerreg )
@@ -253,10 +257,13 @@ object Prolog
 						
 							for (i <- 0 until s.arity)
 							{
-							val v = s.args(i).asInstanceOf[Var]
-							
-								if (v.bank == 0 && regmap.contains( v.reg ))
-									arrange( v.reg )
+								s.args(i) match
+								{
+									case v: Var => 
+										if (v.bank == 0 && regmap.contains( v.reg ))
+											arrange( v.reg )
+									case _ =>
+								}
 							}
 							
 							eqs += reg -> s
@@ -269,15 +276,23 @@ object Prolog
 							code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 							seen add (0, e._1)
 							
-							for (Var( s, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
-								if (seen( (b, n) ))
-									code += SetValueInstruction( b, n )
-								else
+							for (a <- e._2.args)
+								a match
 								{
-									code += SetVariableInstruction( if (variables) s else null, b, n )
-									seen add (b, n)
+									case Var( s, b, n ) =>
+										if (seen( (b, n) ))
+											code += SetValueInstruction( b, n )
+										else
+										{
+											code += SetVariableInstruction( if (variables) s else null, b, n )
+											seen add (b, n)
+										}
+									case AtomAST( atom, _ ) =>
+										code += SetConstantInstruction( atom )
 								}
 						}
+					case AtomAST( atom, _ ) =>
+						code += PutConstantInstruction( atom, arg )
 				}
 			}
 			
@@ -286,14 +301,10 @@ object Prolog
 			for ((k, v) <- varmap)
 				if (v._1 == 0)
 					varmap -= k
-
-//			varmap.clear
 			
 			for (e <- seen)
 				if (e._1 == 0)
 					seen -= e
-					
-//			seen.clear
 		}
 
 		code += DeallocateInstruction
@@ -368,13 +379,19 @@ object Prolog
 					code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
 					seen add (0, arg)
 					
-					for (Var( _, b, n ) <- e.args.asInstanceOf[Seq[Var]])
-						if (seen( (b, n) ))
-							code += UnifyValueInstruction( b, n )
-						else
+					for (a <- e.args)
+						a match
 						{
-							code += UnifyVariableInstruction( b, n )
-							seen add (b, n)
+							case Var( _, b, n ) =>
+								if (seen( (b, n) ))
+									code += UnifyValueInstruction( b, n )
+								else
+								{
+									code += UnifyVariableInstruction( b, n )
+									seen add (b, n)
+								}
+							case AtomAST( atom, _ ) =>
+								code += UnifyConstantInstruction( atom )
 						}
 			}
 		}
@@ -383,13 +400,19 @@ object Prolog
 		{
 			code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 			
-			for (Var( _, b, n ) <- e._2.args.asInstanceOf[Seq[Var]])
-				if (seen( (b, n) ))
-					code += UnifyValueInstruction( b, n )
-				else
+			for (a <- e._2.args)
+				a match
 				{
-					code += UnifyVariableInstruction( b, n )
-					seen add (b, n)
+					case Var( _, b, n ) =>
+						if (seen( (b, n) ))
+							code += UnifyValueInstruction( b, n )
+						else
+						{
+							code += UnifyVariableInstruction( b, n )
+							seen add (b, n)
+						}
+					case AtomAST( atom, _ ) =>
+						code += UnifyConstantInstruction( atom )
 				}
 		}
 		
@@ -513,23 +536,27 @@ object Prolog
 			
 			println( code(i) match
 				{
-				case PutStructureInstruction( f, i )		=> s"put_structure $f, $i"
-				case SetVariableInstruction( v, b, i )		=> s"set_variable $v, $b, $i"
-				case SetValueInstruction( b, i )			=> s"set_value $b $i"
-				case GetStructureInstruction( f, i )		=> s"get_structure $f, $i"
-				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b $i"
-				case UnifyValueInstruction( b, i )			=> s"unify_value $b $i"
-				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v $b $n $i"
-				case PutValueInstruction( b, n, i )			=> s"put_value $b $n $i"
-				case GetVariableInstruction( b, n, i )		=> s"get_variable $b $n $i"
-				case GetValueInstruction( b, n, i )			=> s"get_value $b $n $i"
-				case CallInstruction( f )					=> s"call $f"
-				case ProceedInstruction()					=> "proceed"
-				case AllocateInstruction( n )				=> s"allocate $n"
-				case DeallocateInstruction					=> "deallocate"
-				case TryMeElseInstruction( l )				=> s"try_me_else $l"
+				case PutStructureInstruction( f, i )		=> s"put_structure ${f.f.name}/${f.n}, $i"
+				case SetVariableInstruction( v, b, i )	=> s"set_variable $v, $b, $i"
+				case SetValueInstruction( b, i )			=> s"set_value $b, $i"
+				case GetStructureInstruction( f, i )		=> s"get_structure ${f.f.name}/${f.n}, $i"
+				case UnifyVariableInstruction( b, i )		=> s"unify_variable $b, $i"
+				case UnifyValueInstruction( b, i )		=> s"unify_value $b, $i"
+				case PutVariableInstruction( v, b, n, i )	=> s"put_variable $v, $b, $n, $i"
+				case PutValueInstruction( b, n, i )		=> s"put_value $b, $n, $i"
+				case GetVariableInstruction( b, n, i )	=> s"get_variable $b, $n, $i"
+				case GetValueInstruction( b, n, i )		=> s"get_value $b, $n, $i"
+				case CallInstruction( f )				=> s"call $f"
+				case ProceedInstruction()				=> "proceed"
+				case AllocateInstruction( n )				=> s"allocate ${n - 1}"
+				case DeallocateInstruction				=> "deallocate"
+				case TryMeElseInstruction( l )			=> s"try_me_else $l"
 				case RetryMeElseInstruction( l )			=> s"retry_me_else $l"
-				case TrustMeInstruction()					=> "trust_me"
+				case TrustMeInstruction()				=> "trust_me"
+				case PutConstantInstruction( c, i )		=> s"put_constant $c, $i"
+				case GetConstantInstruction( c, i )		=> s"get_constant $c, $i"
+				case SetConstantInstruction( c )			=> s"set_constant $c"
+				case UnifyConstantInstruction( c )		=> s"unify_constant $c"
 				} )
 		}
 	}
@@ -560,6 +587,7 @@ object Prolog
 	def display( a: AST ): String =
 		a match
 		{
+			case AtomAST( atom, _ ) => atom.name
 			case VariableAST( s, _ ) => s.name
 			case StructureAST( f, IndexedSeq(), _ ) => f.name
 			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )

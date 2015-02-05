@@ -148,6 +148,11 @@ class WAM
 		{
 			case PtrCell( 'ref, a ) => VariableAST( Symbol(a.store.name + a.ind) )
 			case PtrCell( 'str, p ) => str( p )
+			case ConCell( c ) =>
+				c match
+				{
+					case s: Symbol => AtomAST( s )
+				}
 		}
 	}
 	
@@ -361,6 +366,8 @@ class WAM
 									backtrack
 							case _ => backtrack
 						}
+						
+						s += 1
 					case WriteMode =>
 						put( h, ConCell(c) )
 						h += 1
@@ -477,27 +484,23 @@ class WAM
 		val d2 = deref( pdl pop )
 		
 			if (d1 != d2)
-			{
-			val PtrCell( t1, v1 ) = d1.read
-			val PtrCell( t2, v2 ) = d2.read
-			
-				if (t1 == 'ref || t2 == 'ref)
-					bind( d1, d2 )
-				else
+				(d1.read, d2.read) match
 				{
-				val f1@FunCell( _, n ) = v1.read
-				val f2 = v2.read
-				
-					if (f1 == f2)
-						for (i <- 1 to n)
-						{
-							pdl push (v1 + i)
-							pdl push (v2 + i)
-						}
-					else
-						failure = true
+					case (PtrCell( 'ref, _ ), _)|(_, PtrCell( 'ref, _ )) => bind( d1, d2 )
+					case (ConCell( c1 ), ConCell( c2 )) => failure = c1 != c2
+					case (PtrCell( 'str, v1 ), PtrCell( 'str, v2 )) =>
+						val f1@FunCell( _, n ) = v1.read
+						val f2 = v2.read
+					
+						if (f1 == f2)
+							for (i <- 1 to n)
+							{
+								pdl push (v1 + i)
+								pdl push (v2 + i)
+							}
+						else
+							failure = true
 				}
-			}
 		}
 		
 		failure
