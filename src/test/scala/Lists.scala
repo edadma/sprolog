@@ -11,8 +11,6 @@ class Lists extends FreeSpec with PropertyChecks with Matchers
 	"member" in
 	{
 	val p = program( """
-		X = X.
-		
 		member( X, [X|_] ).
 		member( X, [_|T] ) :- member( X, T ).
 		""" )

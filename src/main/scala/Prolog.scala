@@ -21,10 +21,9 @@ object Prolog
 				value.kind match
 				{
  					case 'atom => AtomAST( Symbol(value.s), value.start.head.pos )
-//					case 'atom => StructureAST( Symbol(value.s), IndexedSeq.empty, value.start.head.pos )
 					case 'string => StringAST( value.s, value.start.head.pos )
 					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
-//					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
+					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
 					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
 					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty, value.start.head.pos )
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
@@ -296,6 +295,8 @@ object Prolog
 										code += SetConstantInstruction( atom )
 									case NumberAST( n, _ ) =>
 										code += SetConstantInstruction( n )
+									case AnonymousAST( _ ) =>
+										code += SetVoidInstruction( 1 )
 								}
 						}
 					case AtomAST( atom, _ ) =>
@@ -401,8 +402,17 @@ object Prolog
 								}
 							case AtomAST( atom, _ ) =>
 								code += UnifyConstantInstruction( atom )
+							case NumberAST( n, _ ) =>
+								code += UnifyConstantInstruction( n )
+							case AnonymousAST( _ ) =>
+								code += UnifyVoidInstruction( 1 )
 						}
-				case _ =>
+				case AtomAST( atom, _ ) =>
+					code += GetConstantInstruction( atom, arg )
+				case NumberAST( n, _ ) =>
+					code += GetConstantInstruction( n, arg )
+				case AnonymousAST( _ ) =>
+					code += UnifyVoidInstruction( 1 )
 			}
 		}
 
@@ -423,6 +433,8 @@ object Prolog
 						}
 					case AtomAST( atom, _ ) =>
 						code += UnifyConstantInstruction( atom )
+					case AnonymousAST( _ ) =>
+						code += UnifyVoidInstruction( 1 )
 				}
 		}
 		

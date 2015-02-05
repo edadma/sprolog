@@ -28,14 +28,14 @@ object TestMain extends App
 	val pc = Prolog.compileProgram( p )
 	val v = Prolog.vm
 	
-// 	Prolog.listing( pc.code )
+ 	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """A = 1, A =:= 1.""" )
+  	val q = Prolog.parseQuery( """p( A ).""" )
 	val qc = Prolog.compileQuery( q )
 
-//  	println
-//  	Prolog.listing( qc.code )
+ 	println
+ 	Prolog.listing( qc.code )
 	
 	v query qc
 }
