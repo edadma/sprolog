@@ -17,8 +17,6 @@ object Prolog
 	val parser =
 		new AbstractPrologParser[AST]
 		{
-			add(  700, 'xfx, "<" )
-		
 			def primary( value: Token ) =
 				value.kind match
 				{
@@ -45,7 +43,8 @@ object Prolog
 		{
 			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
 			addCallable( "fail", 0, _ => backtrack )
-			addCallable( "<", 2, _ => if (read(1).asInstanceOf[StructureAST].f.name >= read(2).asInstanceOf[StructureAST].f.name) backtrack )
+			addCallable( "=", 2, _ => if (unify(addr(1), addr(2))) backtrack )
+			addCallable( "\\=", 2, _ => if (!unify(addr(1), addr(2))) backtrack )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
