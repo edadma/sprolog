@@ -17,8 +17,6 @@ object Prolog
 	val parser =
 		new AbstractPrologParser[AST]
 		{
-			add(  700, 'xfx, "<" )
-		
 			def primary( value: Token ) =
 				value.kind match
 				{
@@ -42,12 +40,13 @@ object Prolog
 					args.map(_.v), functor.start.head.pos )
 		}
 	
-	val vm =
+	def vm =
 		new WAM
 		{
 			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
 			addCallable( "fail", 0, _ => backtrack )
-			addCallable( "<", 2, _ => if (read(1).asInstanceOf[StructureAST].f.name >= read(2).asInstanceOf[StructureAST].f.name) backtrack )
+			addCallable( "<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue >= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
+			addCallable( "=<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue > read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
@@ -289,10 +288,14 @@ object Prolog
 										}
 									case AtomAST( atom, _ ) =>
 										code += SetConstantInstruction( atom )
+									case NumberAST( n, _ ) =>
+										code += SetConstantInstruction( n )
 								}
 						}
 					case AtomAST( atom, _ ) =>
 						code += PutConstantInstruction( atom, arg )
+					case NumberAST( n, _ ) =>
+						code += PutConstantInstruction( n, arg )
 				}
 			}
 			
@@ -472,23 +475,23 @@ object Prolog
 	
 	def query( p: Program, q: String ) =
 	{
-	val wam = new WAM
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
+	val v = vm
 	
-		wam.program = p
-		Console.withOut( new PrintStream(out, true) ) {wam query compileQuery(parseQuery(q))}
+		v.program = p
+		Console.withOut( new PrintStream(out, true) ) {v query compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
 	
 	def queryFirst( p: Program, q: String ) =
 	{
-	val wam = new WAM
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
+	val v = vm
 	
-		wam.program = p
-		Console.withOut( new PrintStream(out, true) ) {wam queryFirst compileQuery(parseQuery(q))}
+		v.program = p
+		Console.withOut( new PrintStream(out, true) ) {v queryFirst compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
 	
@@ -587,6 +590,7 @@ object Prolog
 	def display( a: AST ): String =
 		a match
 		{
+			case NumberAST( n, _ ) => n.toString
 			case AtomAST( atom, _ ) => atom.name
 			case VariableAST( s, _ ) => s.name
 			case StructureAST( f, IndexedSeq(), _ ) => f.name

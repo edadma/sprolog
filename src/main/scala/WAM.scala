@@ -102,6 +102,7 @@ class WAM
 		p = QUERY
 		cp = -1
 		vars.clear
+		regs(1) = null
 		run
 	}
 	
@@ -152,6 +153,7 @@ class WAM
 				c match
 				{
 					case s: Symbol => AtomAST( s )
+					case n: Number => NumberAST( n )
 				}
 		}
 	}

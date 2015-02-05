@@ -23,18 +23,29 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
-		p( f( b, g(a) ) ).
+		naive_sort( List, Sorted ):- permutation( List, Sorted ), is_sorted( Sorted ).
+		
+		delete( X, [X|R], R ).
+		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
+		
+		permutation( [], [] ).
+		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
+
+		is_sorted( [] ).
+		is_sorted( [_] ).
+		is_sorted( [X, Y|T] ) :- X =< Y, is_sorted( [Y|T] ).
 		""" )
 	val pc = Prolog.compileProgram( p )
 
-	Prolog.listing( pc.code )
+// 	Prolog.listing( pc.code )
 	Prolog.vm.program = pc
 
-  	val q = Prolog.parseQuery( "p( f( A, g(a) ) )." )
+ 	val q = Prolog.parseQuery( "naive_sort( [7, 4, 6, 5, 2, 9], L )." )
+//	val q = Prolog.parseQuery( "member( N, [7, 4, 6, 5, 2, 9, 3, 1, 8, 0] ), N =< 5." )
 	val qc = Prolog.compileQuery( q )
 
- 	println
- 	Prolog.listing( qc.code )
+//  	println
+//  	Prolog.listing( qc.code )
 	
 	Prolog.vm query qc
 }
