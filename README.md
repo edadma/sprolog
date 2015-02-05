@@ -8,8 +8,6 @@ It will aim to be a subset of ISO Prolog including a standard Prolog parser usin
 Here is an example of what it can do so far.
 
     val p = Prolog.program( """
-        X = X.
-        
         member( X, [X|_] ).
         member( X, [_|T] ) :- member( X, T ).
         

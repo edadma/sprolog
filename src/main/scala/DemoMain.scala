@@ -4,8 +4,6 @@ package ca.hyperreal.sprolog
 object DemoMain extends App
 {
 	val p = Prolog.program( """
-		X = X.
-		
 		member( X, [X|_] ).
 		member( X, [_|T] ) :- member( X, T ).
 		
