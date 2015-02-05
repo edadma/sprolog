@@ -56,9 +56,12 @@ class Basic extends FreeSpec with PropertyChecks with Matchers
 		""" )
 	
 		query( p, "p( A )." ) shouldBe "A = f(a)"
+		query( p, "A = 123" ) shouldBe "A = 123"
+		query( p, "A = f(123)" ) shouldBe "A = f(123)"
 		query( p, "ia( A )." ) shouldBe "A = 123"
 		query( p, "ina( A )." ) shouldBe "A = f(123)"
 		query( p, "A = `asdf`" ) shouldBe "A = asdf"
+		query( p, "A = f(`asdf`)" ) shouldBe "A = f(asdf)"
 		query( p, "sa( A )." ) shouldBe "A = asdf"
 		query( p, "sna( A )." ) shouldBe "A = f(asdf)"
 	}

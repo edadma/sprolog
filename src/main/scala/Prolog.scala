@@ -297,6 +297,8 @@ object Prolog
 										code += SetConstantInstruction( atom )
 									case NumberAST( n, _ ) =>
 										code += SetConstantInstruction( n )
+									case StringAST( s, _ ) =>
+										code += SetConstantInstruction( s )
 									case AnonymousAST( _ ) =>
 										code += SetVoidInstruction( 1 )
 								}
