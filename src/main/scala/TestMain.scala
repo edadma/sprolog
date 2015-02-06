@@ -25,12 +25,12 @@ object TestMain extends App
  	val p = Prolog.parseProgram( """
 		""" )
 	val pc = Prolog.compileProgram( p )
-	val v = Prolog.vm
+	val v = new PrologVM
 	
 //  	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ S = `asdf`. """ )
+  	val q = Prolog.parseQuery( """ 1 == 1. """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

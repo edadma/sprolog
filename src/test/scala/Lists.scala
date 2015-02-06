@@ -3,7 +3,7 @@ package ca.hyperreal.sprolog
 import org.scalatest._
 import prop.PropertyChecks
 
-import Prolog.{program, query, queryFirst}
+import Prolog.{program, query, queryOnce}
 
 
 class Lists extends FreeSpec with PropertyChecks with Matchers
@@ -56,7 +56,7 @@ class Lists extends FreeSpec with PropertyChecks with Matchers
 		intersection( [_|T1], L, T2 ) :- intersection( T1, L, T2 ).
 		""" )
 	
-		queryFirst( p, "intersection( [a, b, c, d], [b, c, d, e], L )." ) shouldBe "L = [b, c, d]"
+		queryOnce( p, "intersection( [a, b, c, d], [b, c, d, e], L )." ) shouldBe "L = [b, c, d]"
 	}
 	
 	"permutation" in

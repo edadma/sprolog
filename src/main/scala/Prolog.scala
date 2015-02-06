@@ -24,6 +24,7 @@ object Prolog
  					case 'atom => AtomAST( Symbol(value.s), value.start.head.pos )
 					case 'string => StringAST( value.s, value.start.head.pos )
 					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
+					case 'float => NumberAST( value.s.toDouble, value.start.head.pos )
 					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
 					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
 					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty, value.start.head.pos )
@@ -31,28 +32,19 @@ object Prolog
 				}
 			
 			def structure( functor: Token, args: IndexedSeq[Value[AST]] ) =
-				StructureAST(
-					(functor.kind match
+				if (functor.kind == '-' && args.length == 1 && args(0).v.isInstanceOf[NumberAST])
+					args(0).v match
 					{
-						case 'atom|_: Character => Symbol(functor.s)
-						case s: Symbol => s
-					}),
-					args.map(_.v), functor.start.head.pos )
-		}
-	
-	def vm =
-		new WAM
-		{
-			addCallable( "write", 1, _ => println( Prolog.display(read(1)) ) )
-			addCallable( "fail", 0, _ => backtrack )
-			addCallable( "=:=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue != read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( "=\\=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue == read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( "<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue >= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( "=<", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue > read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( ">", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue <= read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( ">=", 2, _ => if (read(1).asInstanceOf[NumberAST].n.intValue < read(2).asInstanceOf[NumberAST].n.intValue) backtrack )
-			addCallable( "=", 2, _ => if (unify(addr(1), addr(2))) backtrack )
-			addCallable( "\\=", 2, _ => if (!unify(addr(1), addr(2))) backtrack )
+						case NumberAST( n: java.lang.Integer, _ ) => NumberAST( -n, functor.start.head.pos )
+					}
+				else
+					StructureAST(
+						(functor.kind match
+						{
+							case 'atom|_: Character => Symbol(functor.s)
+							case s: Symbol => s
+						}),
+						args.map(_.v), functor.start.head.pos )
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
@@ -506,21 +498,21 @@ object Prolog
 	{
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
-	val v = vm
+	val vm = new PrologVM
 	
-		v.program = p
-		Console.withOut( new PrintStream(out, true) ) {v query compileQuery(parseQuery(q))}
+		vm.program = p
+		Console.withOut( new PrintStream(out, true) ) {vm query compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
 	
-	def queryFirst( p: Program, q: String ) =
+	def queryOnce( p: Program, q: String ) =
 	{
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
-	val v = vm
+	val vm = new PrologVM
 	
-		v.program = p
-		Console.withOut( new PrintStream(out, true) ) {v queryFirst compileQuery(parseQuery(q))}
+		vm.program = p
+		Console.withOut( new PrintStream(out, true) ) {vm queryFirst compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
 	

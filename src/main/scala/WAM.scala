@@ -28,7 +28,7 @@ class WAM
 	protected val vars = new ArrayBuffer[(Symbol, Addr)]
 	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected var argc: Int = _
-	protected val callables = new HashMap[Indicator, WAMInterface => Unit]
+	protected val callables = new HashMap[Indicator, WAMInterface => Boolean]
 	protected val interface =
 		new WAMInterface( this )
 		{
@@ -49,14 +49,19 @@ class WAM
 			def unify( a1: Addr, a2: Addr ) = wam.unify( a1, a2 )
 		}
 	
-	def addCallable( name: String, arity: Int, callable: WAMInterface => Unit )
+	def define( name: String, arity: Int )( c: => Boolean )
+	{
+		define( name, arity, _ => c )
+	}
+	
+	def define( name: String, arity: Int, c: WAMInterface => Boolean )
 	{
 	val ind = Indicator( Symbol(name), arity )
 	
 		if (callables contains ind)
 			sys.error( s"callable $ind already added" )
 		else
-			callables(ind) = callable
+			callables(ind) = c
 	}
 	
 	def query( qc: Query )
@@ -163,6 +168,8 @@ class WAM
 	
 	def read( arg: Int ): AST = read( addr(arg) )
 	
+	def number( arg: Int ) = read( arg ).asInstanceOf[NumberAST].n
+	
 	protected def run =
 	{
 		while (p > -1 && !fail)
@@ -266,7 +273,7 @@ class WAM
 				mode match
 				{
 					case ReadMode =>
-						if (unify( new Addr(regs(b), i), s ))
+						if (!unify( new Addr(regs(b), i), s ))
 							backtrack
 							
 						s += 1
@@ -287,7 +294,7 @@ class WAM
 			case GetVariableInstruction( b, n, i ) =>
 				put( regs(b), n, x(i) )
 			case GetValueInstruction( b, n, i ) =>
-				if (unify( new Addr(regs(b), n), new Addr(x, i) ))
+				if (!unify( new Addr(regs(b), n), new Addr(x, i) ))
 					backtrack
 			case CallInstruction( f ) =>
 				program.procmap.get( f ) match
@@ -296,7 +303,9 @@ class WAM
 						callables.get( f ) match
 						{
 							case None => backtrack
-							case Some( callable ) => callable( interface )
+							case Some( callable ) =>
+								if (!callable( interface ))
+									backtrack
 						}
 					case Some( loc ) =>
 						argc = f.arity
@@ -477,13 +486,13 @@ class WAM
 	
 	protected def unify( a1: Addr, a2: Addr ) =
 	{
-	var failure = false
+	var matches = true
 	
 		pdl.clear
 		pdl push a1
 		pdl push a2
 		
-		while (!(pdl.isEmpty || failure))
+		while (!pdl.isEmpty && matches)
 		{
 		val d1 = deref( pdl pop )
 		val d2 = deref( pdl pop )
@@ -492,7 +501,7 @@ class WAM
 				(d1.read, d2.read) match
 				{
 					case (PtrCell( 'ref, _ ), _)|(_, PtrCell( 'ref, _ )) => bind( d1, d2 )
-					case (ConCell( c1 ), ConCell( c2 )) => failure = c1 != c2
+					case (ConCell( c1 ), ConCell( c2 )) => matches = c1 == c2 && c1.getClass == c2.getClass		// in Prolog 1 \= 1.0
 					case (PtrCell( 'str, v1 ), PtrCell( 'str, v2 )) =>
 						val f1@FunCell( _, n ) = v1.read
 						val f2 = v2.read
@@ -504,11 +513,11 @@ class WAM
 								pdl push (v2 + i)
 							}
 						else
-							failure = true
+							matches = false
 				}
 		}
 		
-		failure
+		matches
 	}
 }
 

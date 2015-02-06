@@ -3,7 +3,7 @@ package ca.hyperreal.sprolog
 import org.scalatest._
 import prop.PropertyChecks
 
-import Prolog.{program, query, queryFirst}
+import Prolog.{program, query, queryOnce}
 
 
 class Basic extends FreeSpec with PropertyChecks with Matchers
