@@ -6,6 +6,8 @@ import collection.mutable.{ListBuffer, ArrayBuffer, HashMap, HashSet}
 
 import ca.hyperreal.rtcep._
 
+import funl.lia.{FunctionMap, Math}
+
 
 object Prolog
 {
@@ -35,7 +37,7 @@ object Prolog
 				if (functor.kind == '-' && args.length == 1 && args(0).v.isInstanceOf[NumberAST])
 					args(0).v match
 					{
-						case NumberAST( n: java.lang.Integer, _ ) => NumberAST( -n, functor.start.head.pos )
+						case NumberAST( n, _ ) => NumberAST( Math('-, n).asInstanceOf[Number], functor.start.head.pos )
 					}
 				else
 					StructureAST(

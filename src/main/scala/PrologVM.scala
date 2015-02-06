@@ -67,6 +67,30 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "fail", 0 ) (false)
 	
+	define( "float", 1 )
+	{
+		arg(1) match
+		{
+			case NumberAST( (_: java.lang.Double|_: BigDecimal), _ ) => true
+			case _ => false
+		}
+	}
+	
+	define( "integer", 1 )
+	{
+		arg(1) match
+		{
+			case NumberAST( (_: java.lang.Integer|_: BigInt), _ ) => true
+			case _ => false
+		}
+	}
+	
+	define( "nl", 0 )
+	{
+		println
+		true
+	}
+	
 	define( "nonvar", 1 ) (!unbound(addr(1)))
 	
 	define( "number", 1 ) (arg(1).isInstanceOf[NumberAST])
@@ -76,8 +100,8 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	define( "true", 0 ) (true)
 	
 	define( "write", 1 )
-		{
-			println( Prolog.display(arg(1)) )
-			true
-		}
+	{
+		println( Prolog.display(arg(1)) )
+		true
+	}
 }

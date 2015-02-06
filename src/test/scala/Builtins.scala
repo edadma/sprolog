@@ -22,7 +22,15 @@ class Builtins extends FreeSpec with PropertyChecks with Matchers
 		query( p, "atom([])." ) shouldBe "yes"
 		query( p, "atom(f(X))." ) shouldBe "no"
 		query( p, "atom(10.01)." ) shouldBe "no"
-	
+
+		// 90
+		query( p, "float(10.01)." ) shouldBe "yes"
+		query( p, "float(-10.01)." ) shouldBe "yes"
+//		query( p, "float(- -10.01)." ) shouldBe "no"
+		query( p, "float(10)." ) shouldBe "no"
+		query( p, "float(X)." ) shouldBe "no"
+		query( p, "float(a)." ) shouldBe "no"
+		
 		// atomic 57
 		query( p, "atomic(10.01)." ) shouldBe "yes"
 		query( p, "atomic('Yeti')." ) shouldBe "yes"
@@ -39,6 +47,14 @@ class Builtins extends FreeSpec with PropertyChecks with Matchers
 		query( p, "compound('ok')." ) shouldBe "no"
 		query( p, "compound([])." ) shouldBe "no"
 		query( p, "compound(A)." ) shouldBe "no"
+
+		// 110
+		query( p, "integer(10)." ) shouldBe "yes"
+		query( p, "integer(-10)." ) shouldBe "yes"
+//		query( p, "integer(- -10)." ) shouldBe "no"
+		query( p, "integer(10.01)." ) shouldBe "no"
+		query( p, "integer(X)." ) shouldBe "no"
+		query( p, "integer('o_k')." ) shouldBe "no"
 
 		// is 111
 		query( p, "X = 1+2, Y is X*3." ) shouldBe "X = +(1, 2), Y = 9"
