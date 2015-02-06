@@ -12,7 +12,11 @@ class Builtins extends FreeSpec with PropertyChecks with Matchers
 	{
 	val p = program( """
 		""" )
-	
+		// arithmetic compare 40
+		query( p, "X = 1+2, X + 6 =:= X * 3." ) shouldBe "X = +(1, 2)"
+		query( p, "'=:='(1.0, 1)." ) shouldBe "yes"
+		query( p, "0.3333333333333333 =:= 1/3." ) shouldBe "no"
+
 		// atom 50
 		query( p, "atom('Yety')." ) shouldBe "yes"
 		query( p, "atom([])." ) shouldBe "yes"
@@ -25,7 +29,17 @@ class Builtins extends FreeSpec with PropertyChecks with Matchers
 //		query( p, "atomic((;))." ) shouldBe "yes"
 		query( p, "atomic(X)." ) shouldBe "no"
 		query( p, "atomic(f(X,Y))." ) shouldBe "no"
-		
+
+		// compound 72
+		query( p, "compound(f(X,Y))." ) should not be "no"
+		query( p, "compound([a])." ) shouldBe "yes"
+		query( p, "compound(-a)." ) shouldBe "yes"
+		query( p, "compound(-1)." ) shouldBe "no"
+		query( p, "compound(10.01)." ) shouldBe "no"
+		query( p, "compound('ok')." ) shouldBe "no"
+		query( p, "compound([])." ) shouldBe "no"
+		query( p, "compound(A)." ) shouldBe "no"
+
 		// is 111
 		query( p, "X = 1+2, Y is X*3." ) shouldBe "X = +(1, 2), Y = 9"
 		query( p, "Result is 3+11.0." ) shouldBe "Result = 14.0"

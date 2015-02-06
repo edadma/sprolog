@@ -30,7 +30,7 @@ object TestMain extends App
 //  	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ A is 1/2 + 1. """ )
+  	val q = Prolog.parseQuery( """ 1.1 < 1.1. """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

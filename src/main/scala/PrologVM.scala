@@ -1,5 +1,7 @@
 package ca.hyperreal.sprolog
 
+import funl.lia.{FunctionMap, Math}
+
 
 class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 {
@@ -30,17 +32,17 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		}
 	}
 	
-	define( "=:=", 2 ) (eval(1).intValue == eval(2).intValue)
+	define( "=:=", 2 ) (eval(1) == eval(2))
 	
-	define( "=\\=", 2 ) (number(1).intValue != number(2).intValue)
+	define( "=\\=", 2 ) (eval(1) != eval(2))
 	
-	define( "<", 2 ) (number(1).intValue < number(2).intValue)
+	define( "<", 2 ) (Math( '<, eval(1), eval(2) ).asInstanceOf[Boolean])
 	
-	define( "=<", 2 ) (number(1).intValue <= number(2).intValue)
+	define( "=<", 2 ) (Math( '<=, eval(1), eval(2) ).asInstanceOf[Boolean])
 	
-	define( ">", 2 ) (number(1).intValue > number(2).intValue)
+	define( ">", 2 ) (Math( '>, eval(1), eval(2) ).asInstanceOf[Boolean])
 	
-	define( ">=", 2 ) (number(1).intValue >= number(2).intValue)
+	define( ">=", 2 ) (Math( '>=, eval(1), eval(2) ).asInstanceOf[Boolean])
 	
 	define( "atom", 1 ) (arg(1).isInstanceOf[AtomAST])
 	
@@ -61,13 +63,15 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "\\=", 2 ) (!unify(addr(1), addr(2)))
 	
+	define( "compound", 1 ) (arg(1).isInstanceOf[StructureAST])
+	
 	define( "fail", 0 ) (false)
 	
-	define( "nonvar", 1 ) (!arg(1).isInstanceOf[VariableAST])
+	define( "nonvar", 1 ) (!unbound(addr(1)))
 	
 	define( "number", 1 ) (arg(1).isInstanceOf[NumberAST])
 	
-	define( "var", 1 ) (arg(1).isInstanceOf[VariableAST])
+	define( "var", 1 ) (unbound(addr(1)))
 	
 	define( "true", 0 ) (true)
 	

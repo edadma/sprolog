@@ -159,11 +159,11 @@ class WAM
 		}
 	}
 	
-	def addr( a: Int ) = new Addr( x, a )
+	def addr( a: Int ) = deref( new Addr(x, a) )
 	
 	def argvar( a: Int ) =
 	{
-	val d = deref( addr(a) )
+	val d = addr( a )
 	
 		if (unbound( d ))
 			d
