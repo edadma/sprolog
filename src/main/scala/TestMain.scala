@@ -23,11 +23,6 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
-		delete( X, [X|R], R ).
-		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
-		
-		permutation( [], [] ).
-		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
 		""" )
 	val pc = Prolog.compileProgram( p )
 	val v = new PrologVM
@@ -35,7 +30,7 @@ object TestMain extends App
 //  	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ permutation( [a, b, c], [c, a] ). """ )
+  	val q = Prolog.parseQuery( """ A is 1+2*3. """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

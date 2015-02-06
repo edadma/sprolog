@@ -13,8 +13,8 @@ class WAM
 	protected val QUERY = 1000000000	
 	protected val heap = new Store( "H", 10000 )
 	protected val x = new Store( "X", 100 )
-	protected val pdl = new ArrayStack[Addr]
-	protected val tr = new ArrayStack[Addr]
+	protected val pdl = new ArrayStack[Address]
+	protected val tr = new ArrayStack[Address]
 	protected var estack: Frame = null
 	protected var bstack: Choice = null
 	protected var h: Addr = _
@@ -42,11 +42,11 @@ class WAM
 			
 			def unwind( size: Int ) = wam.unwind( size )
 			
-			def trail( a: Addr ) = wam.trail( a )
+			def trail( a: Address ) = wam.trail( a )
 			
-			def bind( a1: Addr, a2: Addr ) = wam.bind( a1, a2 )
+			def bind( a1: Address, a2: Address ) = wam.bind( a1, a2 )
 			
-			def unify( a1: Addr, a2: Addr ) = wam.unify( a1, a2 )
+			def unify( a1: Address, a2: Address ) = wam.unify( a1, a2 )
 		}
 	
 	def define( name: String, arity: Int )( c: => Boolean )
@@ -124,36 +124,31 @@ class WAM
 			run
 		}
 	
-	def unbound( a: Addr ) =
+	def unbound( a: Address ) =
 		a.read match
 		{
 			case PtrCell('ref, ptr ) if ptr == a => true
 			case _ => false
 		}
 	
-	def deref( store: Store, a: Int ): Addr = deref( new Addr(store, a) )
+	def deref( store: Store, a: Int ): Address = deref( new Addr(store, a) )
 	
-	def deref( a: Addr ): Addr =
+	def deref( a: Address ): Address =
 		a.read match
 		{
 			case PtrCell( 'ref, v ) if v != a => deref( v )
 			case _ => a
 		}
 	
-	def read( a: Addr ): AST =
+	def read( a: Address ): AST =
 	{
-		def str( p: Addr ) =
-		{
-		val FunCell( f, n ) = p.read
-		
-			StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
-//				f.name + "(" + (for (i <- 1 to n) yield p + i).mkString(",") + ")"
-		}
-		
 		deref( a ).read match
 		{
-			case PtrCell( 'ref, a ) => VariableAST( Symbol(a.store.name + a.ind) )
-			case PtrCell( 'str, p ) => str( p )
+			case PtrCell( 'ref, a: Addr ) => VariableAST( Symbol(a.store.name + a.ind) )
+			case PtrCell( 'str, p: Addr ) =>
+				val FunCell( f, n ) = p.read
+				
+				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
 			case ConCell( c ) =>
 				c match
 				{
@@ -164,11 +159,43 @@ class WAM
 		}
 	}
 	
-	def addr( arg: Int ) = new Addr(x, arg)
+	def addr( a: Int ) = new Addr( x, a )
 	
-	def read( arg: Int ): AST = read( addr(arg) )
+	def argvar( a: Int ) =
+	{
+	val d = deref( addr(a) )
 	
-	def number( arg: Int ) = read( arg ).asInstanceOf[NumberAST].n
+		if (unbound( d ))
+			d
+		else
+			read( d )
+	}
+	
+	def arg( a: Int ) = read( addr(a) )
+	
+	def inst( a: Int ) =
+	{
+	val v = arg( a )
+	
+		require( !v.isInstanceOf[VariableAST], "instantiation error" )
+		v
+	}
+	
+	def number( a: Int ) =
+	{
+	val v = inst( a )
+	
+		require( v.isInstanceOf[NumberAST], "expected number" )
+		v.asInstanceOf[NumberAST].n
+	}
+	
+	def integer( a: Int ) =
+	{
+	val v = number( a )
+	
+		require( v.isInstanceOf[Int], "expected integer" )
+		v.asInstanceOf[Int]
+	}
 	
 	protected def run =
 	{
@@ -184,9 +211,9 @@ class WAM
 		fail
 	}
 		
-	protected def put( a: Addr, c: Cell )
+	protected def put( a: Address, c: Cell )
 	{
-		put( a.store, a.ind, c )
+		put( a.asInstanceOf[Addr].store, a.asInstanceOf[Addr].ind, c )
 	}
 	
 	protected def put( r: Store, index: Int, c: Cell )
@@ -245,7 +272,7 @@ class WAM
 							
 						h += 2
 						mode = WriteMode
-					case PtrCell( 'str, a ) =>
+					case PtrCell( 'str, a: Addr ) =>
 						if (a.read == f)
 						{
 							s = a + 1
@@ -436,7 +463,7 @@ class WAM
 		}
 	}
 	
-	protected def ref( a: Addr ) = PtrCell( 'ref, a )
+	protected def ref( a: Address ) = PtrCell( 'ref, a )
 	
 	protected def str( a: Addr ) = PtrCell( 'str, a )
 	
@@ -461,12 +488,12 @@ class WAM
 		}
 	}
 	
-	protected def trail( a: Addr )
+	protected def trail( a: Address )
 	{
 		tr push a
 	}
 
-	protected def bind( a1: Addr, a2: Addr )
+	protected def bind( a1: Address, a2: Address )
 	{
 		if (unbound( a1 ))
 		{
@@ -484,7 +511,7 @@ class WAM
 		}
 	}
 	
-	protected def unify( a1: Addr, a2: Addr ) =
+	protected def unify( a1: Address, a2: Address ) =
 	{
 	var matches = true
 	
@@ -502,7 +529,7 @@ class WAM
 				{
 					case (PtrCell( 'ref, _ ), _)|(_, PtrCell( 'ref, _ )) => bind( d1, d2 )
 					case (ConCell( c1 ), ConCell( c2 )) => matches = c1 == c2 && c1.getClass == c2.getClass		// in Prolog 1 \= 1.0
-					case (PtrCell( 'str, v1 ), PtrCell( 'str, v2 )) =>
+					case (PtrCell( 'str, v1: Addr ), PtrCell( 'str, v2: Addr )) =>
 						val f1@FunCell( _, n ) = v1.read
 						val f2 = v2.read
 					
@@ -561,10 +588,49 @@ case class TryMeElseInstruction( t: Label ) extends Instruction
 case class RetryMeElseInstruction( t: Label ) extends Instruction
 case class TrustMeInstruction() extends Instruction
 
+trait Address
+{
+	def read: Cell
+
+	def write( c: Cell )
+}
+
+class Addr( val store: Store, val ind: Int ) extends Ordered[Addr] with Address
+{
+	def read = store(ind)
+
+	def write( c: Cell ) = store(ind) = c
+	
+	def compare( that: Addr ) =
+	{
+		if (store ne that.store)
+			sys.error( s"$this and $that are not in the same 'store'" )
+			
+		this.ind - that.ind
+	}
+	
+	def read( from: Seq[Cell] ): Cell =
+		if (from ne store)
+			sys.error( "incorrect store" )
+		else
+			read
+	
+	def +( inc: Int ) = if (inc == 0) this else new Addr( store, ind + inc )
+	
+	override def equals( that: Any ) = that.isInstanceOf[Addr] && (this.store eq that.asInstanceOf[Addr].store) && this.ind == that.asInstanceOf[Addr].ind
+	
+	override def toString = s"[${store.name} $ind]"
+}
+
 trait Cell
-case class PtrCell( typ: Symbol, k: Addr ) extends Cell
+case class PtrCell( typ: Symbol, k: Address ) extends Cell
 case class FunCell( f: Symbol, n: Int ) extends Cell
-case class ConCell( c: Any ) extends Cell
+case class ConCell( c: Any ) extends Cell with Address
+	{
+	def read = this
+
+	def write( c: Cell ) = sys.error( "ConCell is read only" )
+	}
 case class LisCell( a: Addr ) extends Cell
 
 trait Mode
@@ -645,33 +711,6 @@ class Query( val code: IndexedSeq[Instruction] )
 	override def toString = code.toString
 }
 
-class Addr( val store: Store, val ind: Int ) extends Ordered[Addr]
-{
-	def read = store(ind)
-
-	def write( c: Cell ) = store(ind) = c
-	
-	def compare( that: Addr ) =
-	{
-		if (store ne that.store)
-			sys.error( s"$this and $that are not in the same 'store'" )
-			
-		this.ind - that.ind
-	}
-	
-	def read( from: Seq[Cell] ): Cell =
-		if (from ne store)
-			sys.error( "incorrect store" )
-		else
-			read
-	
-	def +( inc: Int ) = if (inc == 0) this else new Addr( store, ind + inc )
-	
-	override def equals( that: Any ) = that.isInstanceOf[Addr] && (this.store eq that.asInstanceOf[Addr].store) && this.ind == that.asInstanceOf[Addr].ind
-	
-	override def toString = s"[${store.name} $ind]"
-}
-
 abstract class WAMInterface( val wam: WAM )
 {
 	val estack: Frame
@@ -682,9 +721,9 @@ abstract class WAMInterface( val wam: WAM )
 	
 	def unwind( size: Int )
 	
-	def trail( a: Addr )
+	def trail( a: Address )
 	
-	def bind( a1: Addr, a2: Addr )
+	def bind( a1: Address, a2: Address )
 	
-	def unify( a1: Addr, a2: Addr ): Boolean
+	def unify( a1: Address, a2: Address ): Boolean
 }

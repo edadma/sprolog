@@ -27,18 +27,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.11.5" % "test"
 
-//libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.3.6"
-
-//libraryDependencies ++= Seq(
-//	"org.scala-lang.modules" %% "scala-swing" % "1.0.1",
-//	"org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2"
-//	)
-
-//libraryDependencies += "org.clapper" %% "argot" % "1.0.3"
-
-//libraryDependencies += "com.h2database" % "h2" % "1.3.176"
-
 libraryDependencies ++= Seq(
+	"org.funl-lang" %% "lia" % "0.14",
 	"ca.hyperreal" %% "rtcep" % "0.1"
 	)
 	
