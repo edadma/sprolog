@@ -27,7 +27,7 @@ object Prolog
 					case 'float => NumberAST( value.s.toDouble, value.start.head.pos )
 					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
 					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
-					case `nilsym` => StructureAST( nilsym, IndexedSeq.empty, value.start.head.pos )
+					case `nilsym` => AtomAST( nilsym, value.start.head.pos )
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
 				}
 			
@@ -435,6 +435,10 @@ object Prolog
 						}
 					case AtomAST( atom, _ ) =>
 						code += UnifyConstantInstruction( atom )
+					case NumberAST( n, _ ) =>
+						code += UnifyConstantInstruction( n )
+					case StringAST( s, _ ) =>
+						code += UnifyConstantInstruction( s )
 					case AnonymousAST( _ ) =>
 						code += UnifyVoidInstruction( 1 )
 				}
@@ -596,16 +600,16 @@ object Prolog
 	def isList( a: AST ): Boolean =
 		a match
 		{
-			case StructureAST( NIL, IndexedSeq(), _ ) => true
+			case AtomAST( NIL, _ ) => true
 			case StructureAST( DOT, IndexedSeq(head, tail), _ ) if isList( tail ) => true
 			case _ => false
 		}
 		
-	def toList( l: StructureAST ): List[AST] =
+	def toList( l: AST ): List[AST] =
 		l match
 		{
-			case StructureAST( NIL, IndexedSeq(), _ ) => Nil
-			case StructureAST( DOT, IndexedSeq(head, tail: StructureAST), _ ) => head :: toList( tail )
+			case AtomAST( NIL, _ ) => Nil
+			case StructureAST( DOT, IndexedSeq(head, tail), _ ) => head :: toList( tail )
 		}
 		
 	def display( a: AST ): String =

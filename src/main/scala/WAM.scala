@@ -514,6 +514,7 @@ class WAM
 							}
 						else
 							matches = false
+					case _ => matches = false
 				}
 		}
 		
