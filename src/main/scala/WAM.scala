@@ -14,7 +14,7 @@ class WAM
 	protected val heap = new Store( "H", 10000 )
 	protected val x = new Store( "X", 100 )
 	protected val pdl = new ArrayStack[Address]
-	protected val tr = new ArrayStack[Address]
+	protected val trail = new ArrayStack[Address]
 	protected var estack: Frame = null
 	protected var bstack: Choice = null
 	protected var h: Addr = _
@@ -22,7 +22,7 @@ class WAM
 	protected var s: Addr = _
 	protected var fail: Boolean = _
 	protected var mode: Mode = _
-	protected var query: Query = _
+	protected var callcode: ArrayBuffer[Instruction] = _
 	protected var p: Int = _
 	protected var cp : Int = _
 	protected val vars = new ArrayBuffer[(Symbol, Addr)]
@@ -64,7 +64,7 @@ class WAM
 			callables(ind) = c
 	}
 	
-	def query( qc: Query )
+	def query( qc: ArrayBuffer[Instruction] )
 	{
 		if (execute( qc ))
 			println( "no" )
@@ -83,7 +83,7 @@ class WAM
 		}
 	}
 	
-	def queryFirst( qc: Query )
+	def queryOnce( qc: ArrayBuffer[Instruction] )
 	{
 		if (execute( qc ))
 			println( "no" )
@@ -96,14 +96,14 @@ class WAM
 		}
 	}
 	
-	def execute( q: Query ) =
+	def execute( q: ArrayBuffer[Instruction] ) =
 	{
 		fail = false
 		h = new Addr( heap, 0 )
-		tr.clear
+		trail.clear
 		estack = null
 		bstack = null
-		query = q
+		callcode = q
 		p = QUERY
 		cp = -1
 		vars.clear
@@ -205,7 +205,7 @@ class WAM
 		
 			p += 1
 			
-			perform( if (p < QUERY) program.code(_p) else query.code(_p - QUERY) )
+			perform( if (p < QUERY) program.code(_p) else callcode(_p - QUERY) )
 		}
 		
 		fail
@@ -353,7 +353,7 @@ class WAM
 				else
 					regs(1) = estack.perm
 			case TryMeElseInstruction( t ) =>
-				bstack = new Choice( bstack, x, argc, estack, cp, p + t.offset, tr.size, h )
+				bstack = new Choice( bstack, x, argc, estack, cp, p + t.offset, trail.size, h )
 				hb = h
 			case RetryMeElseInstruction( t ) =>
 				bstack.restore
@@ -480,9 +480,9 @@ class WAM
 	
 	protected def unwind( size: Int )
 	{
-		while (tr.size > size)
+		while (trail.size > size)
 		{
-		val a = tr.pop
+		val a = trail.pop
 		
 			a write ref( a )
 		}
@@ -490,7 +490,7 @@ class WAM
 	
 	protected def trail( a: Address )
 	{
-		tr push a
+		trail push a
 	}
 
 	protected def bind( a1: Address, a2: Address )
@@ -704,11 +704,6 @@ class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
 class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[Indicator, Int] )
 {
 	override def toString = code + "\n" + procmap
-}
-
-class Query( val code: IndexedSeq[Instruction] )
-{
-	override def toString = code.toString
 }
 
 abstract class WAMInterface( val wam: WAM )

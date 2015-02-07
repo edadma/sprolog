@@ -44,6 +44,14 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( ">=", 2 ) (Math( '>=, eval(1), eval(2) ).asInstanceOf[Boolean])
 	
+	define( "==", 2 ) (identical)
+	
+	define( "\\==", 2 ) (!identical)
+	
+	define( "=", 2 ) (unify(addr(1), addr(2)))
+	
+	define( "\\=", 2 ) (!unify(addr(1), addr(2)))
+	
 	define( "atom", 1 ) (arg(1).isInstanceOf[AtomAST])
 	
 	define( "atomic", 1 )
@@ -55,13 +63,15 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		}
 	}
 	
-	define( "==", 2 ) (identical)
+	define( "call", 1 )
+	{
+	val start = callcode.size
 	
-	define( "\\==", 2 ) (!identical)
-	
-	define( "=", 2 ) (unify(addr(1), addr(2)))
-	
-	define( "\\=", 2 ) (!unify(addr(1), addr(2)))
+		Prolog.compileQuery( arg(1), callcode )
+		cp = p
+		p = start + QUERY
+		true
+	}
 	
 	define( "compound", 1 ) (arg(1).isInstanceOf[StructureAST])
 	

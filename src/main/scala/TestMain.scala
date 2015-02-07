@@ -23,14 +23,20 @@ object TestMain extends App
 // 		mother(M,C) :- woman(M), parent(M,C).
 // 		""" )
  	val p = Prolog.parseProgram( """
+		G1 ; G2 :- call( G1 ).
+		G1 ; G2 :- call( G2 ).
+		
+		p.
+		
+		q.
 		""" )
 	val pc = Prolog.compileProgram( p )
 	val v = new PrologVM
 	
-//  	Prolog.listing( pc.code )
+//	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ 1.1 < 1.1. """ )
+  	val q = Prolog.parseQuery( """ p, q. """ )//X = 1 ; X = 2
 	val qc = Prolog.compileQuery( q )
 
 //  	println
