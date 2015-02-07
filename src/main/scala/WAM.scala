@@ -144,7 +144,7 @@ class WAM
 	{
 		deref( a ).read match
 		{
-			case PtrCell( 'ref, a: Addr ) => VariableAST( Symbol(a.store.name + a.ind) )
+			case PtrCell( 'ref, a: Addr ) => a
 			case PtrCell( 'str, p: Addr ) =>
 				val FunCell( f, n ) = p.read
 				
@@ -243,6 +243,7 @@ class WAM
 		inst match
 		{
 			case PutStructureInstruction( f, i ) =>
+				// optimization for section 5.1 of wambook
 				put( h, f )
 				put( x, i, str(h) )
 				h += 1
@@ -448,9 +449,14 @@ class WAM
 							h += 1
 						}
 				}
-			case PutVoidInstruction( i ) =>	// not sure about this
+			case PutVoidInstruction( i ) =>	// not sure about this; this is to handle the rare case of _ in goal argument position
 				put( h, ref(h) )
 				put( x, i, h.read )
+				h += 1
+			case PutRefInstruction( a, i ) =>		// not sure about this; this is to handle variable in runtime compiled goal argument position
+				put( x, i, ref(a) )
+			case SetRefInstruction( a ) =>
+				put( h, ref(a) )
 				h += 1
 		}
 		
@@ -592,6 +598,8 @@ case class PutVoidInstruction( i: Int ) extends Instruction
 case class TryMeElseInstruction( t: Label ) extends Instruction
 case class RetryMeElseInstruction( t: Label ) extends Instruction
 case class TrustMeInstruction() extends Instruction
+case class PutRefInstruction( a: Addr, i: Int ) extends Instruction
+case class SetRefInstruction( a: Addr ) extends Instruction
 
 trait Address
 {
@@ -600,11 +608,13 @@ trait Address
 	def write( c: Cell )
 }
 
-class Addr( val store: Store, val ind: Int ) extends Ordered[Addr] with Address
+class Addr( val store: Store, val ind: Int ) extends AST with Address with Ordered[Addr]
 {
 	def read = store(ind)
 
 	def write( c: Cell ) = store(ind) = c
+	
+	val pos = null
 	
 	def compare( that: Addr ) =
 	{
@@ -624,7 +634,7 @@ class Addr( val store: Store, val ind: Int ) extends Ordered[Addr] with Address
 	
 	override def equals( that: Any ) = that.isInstanceOf[Addr] && (this.store eq that.asInstanceOf[Addr].store) && this.ind == that.asInstanceOf[Addr].ind
 	
-	override def toString = s"[${store.name} $ind]"
+	override def toString = store.name + ind
 }
 
 trait Cell

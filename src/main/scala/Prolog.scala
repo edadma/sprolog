@@ -224,6 +224,7 @@ object Prolog
 		code
 	}
 	
+	// add put_ref and set_ref instructions
 	def body( q: AST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int], varmap: HashMap[Symbol, (Int, Int)], variables: Boolean )
 	{
 	val seen = new HashSet[(Int, Int)] ++ varmap.values
@@ -258,6 +259,8 @@ object Prolog
 									case Some( (b, n) ) =>
 										code += PutValueInstruction( b, n, arg )
 								}
+							case a: Addr =>
+								code += PutRefInstruction( a, arg )
 							case s: StructureAST =>
 								val regmap = HashMap(arg -> s)
 								val eqs = new ArrayBuffer[(Int, StructureAST)]
@@ -300,6 +303,8 @@ object Prolog
 													code += SetVariableInstruction( if (variables) s else null, b, n )
 													seen add (b, n)
 												}
+											case a: Addr =>
+												code += SetRefInstruction( a )
 											case AtomAST( atom, _ ) =>
 												code += SetConstantInstruction( atom )
 											case NumberAST( n, _ ) =>
@@ -653,6 +658,7 @@ object Prolog
 			case AtomAST( atom, _ ) => atom.name
 			case StringAST( s, _ ) => s
 			case VariableAST( s, _ ) => s.name
+			case _: Addr => a.toString
 			case StructureAST( f, IndexedSeq(), _ ) => f.name
 			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
 			case StructureAST( f, args, _ ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
