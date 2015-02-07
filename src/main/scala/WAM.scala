@@ -448,6 +448,10 @@ class WAM
 							h += 1
 						}
 				}
+			case PutVoidInstruction( i ) =>	// not sure about this
+				put( h, ref(h) )
+				put( x, i, h.read )
+				h += 1
 		}
 		
 		if (trace)
@@ -584,6 +588,7 @@ case class PutListInstruction( i: Int ) extends Instruction
 case class GetListInstruction( i: Int ) extends Instruction
 case class SetVoidInstruction( n: Int ) extends Instruction
 case class UnifyVoidInstruction( n: Int ) extends Instruction
+case class PutVoidInstruction( i: Int ) extends Instruction
 case class TryMeElseInstruction( t: Label ) extends Instruction
 case class RetryMeElseInstruction( t: Label ) extends Instruction
 case class TrustMeInstruction() extends Instruction

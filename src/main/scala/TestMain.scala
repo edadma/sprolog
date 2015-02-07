@@ -34,7 +34,7 @@ object TestMain extends App
 //	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ p( asdf, A, zxcv ). """ )//X = 1 ; X = 2
+  	val q = Prolog.parseQuery( """ p( _, A, zxcv ). """ )//X = 1 ; X = 2
 	val qc = Prolog.compileQuery( q )
 
 //  	println

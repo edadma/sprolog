@@ -316,6 +316,8 @@ object Prolog
 								code += PutConstantInstruction( n, arg )
 							case StringAST( s, _ ) =>
 								code += PutConstantInstruction( s, arg )
+							case AnonymousAST( _ ) =>
+								code += PutVoidInstruction( arg )
 						}
 					}
 					
