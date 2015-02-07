@@ -476,13 +476,6 @@ object Prolog
 						
 		varmap
 	}
-	
-	def indicator( t: AST ) =
-		t match
-		{
-			case s: StructureAST => Indicator( s.f, s.arity )
-			case AtomAST( a, _ ) => Indicator( a, 0 )
-		}
 		
 	def clause( c: AST, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
 				proctype: HashMap[Indicator, Int], proclabel: HashMap[Indicator, Label] )

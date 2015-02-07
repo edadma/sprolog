@@ -52,16 +52,9 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "\\=", 2 ) (!unify(addr(1), addr(2)))
 	
-	define( "atom", 1 ) (arg(1).isInstanceOf[AtomAST])
+	define( "atom", 1 ) (atom( arg(1) ))
 	
-	define( "atomic", 1 )
-	{
-		arg(1) match
-		{
-			case _: NumberAST | _: AtomAST | _: StringAST => true
-			case _ => false
-		}
-	}
+	define( "atomic", 1 ) (atomic( arg(1) ))
 	
 	define( "call", 1 )
 	{
@@ -73,7 +66,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		true
 	}
 	
-	define( "compound", 1 ) (arg(1).isInstanceOf[StructureAST])
+	define( "compound", 1 ) (compound( arg(1) ))
 	
 	define( "fail", 0 ) (false)
 	
@@ -84,6 +77,43 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 			case NumberAST( (_: java.lang.Double|_: BigDecimal), _ ) => true
 			case _ => false
 		}
+	}
+	
+	define( "functor", 3 )
+	{
+	val term = arg(1)
+	val name = arg(2)
+	val arity = arg(3)
+	
+		if (compound( term ))
+		{
+		val Indicator( _name, _arity ) = indicator( term )
+		
+			unify( setConstant(_name), addr(2) ) && unify( setConstant(_arity), addr(3) )
+		}
+		else if (atomic( term ))
+			unify( setConstant(constant( term )), addr(2) ) && unify( setConstant(0), addr(3) )
+		else if (variable( term ) && atomic( name ) && integer( arity ) && constant( arity ) == 0)
+			unify( addr(1), addr(2) )
+		else if (variable( term ) && atom( name ) && integer( arity ) && constant( arity ).asInstanceOf[Int] > 0)
+		{
+		val _arity = constant( arity ).asInstanceOf[Int]
+		val s = h
+		
+			put( h, str(h + 1) )
+			put( h + 1, FunCell(constant(name).asInstanceOf[Symbol], _arity) )
+			h += 2
+			
+			for (i <- 1 to _arity)
+			{
+				put( h, ref(h) )
+				h += 1
+			}
+			
+			unify( s, addr(1) )
+		}
+		else
+			false
 	}
 	
 	define( "integer", 1 )
@@ -111,7 +141,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "write", 1 )
 	{
-		println( Prolog.display(arg(1)) )
+		print( Prolog.display(arg(1)) )
 		true
 	}
 }

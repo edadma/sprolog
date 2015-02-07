@@ -177,7 +177,7 @@ class WAM
 	{
 	val v = arg( a )
 	
-		require( !v.isInstanceOf[VariableAST], "instantiation error" )
+		require( !v.isInstanceOf[Addr], "instantiation error" )
 		v
 	}
 	
@@ -197,6 +197,8 @@ class WAM
 		v.asInstanceOf[Int]
 	}
 	
+	def integer( t: AST ) = t.isInstanceOf[NumberAST] && t.asInstanceOf[NumberAST].n.isInstanceOf[Int]
+	
 	protected def run =
 	{
 		while (p > -1 && !fail)
@@ -210,7 +212,7 @@ class WAM
 		
 		fail
 	}
-		
+	
 	protected def put( a: Address, c: Cell )
 	{
 		put( a.asInstanceOf[Addr].store, a.asInstanceOf[Addr].ind, c )
@@ -224,7 +226,7 @@ class WAM
 		r(index) = c
 	}
 	
-	protected def variable( v: Symbol, b: Int, n: Int, a: Addr )
+	protected def binding( v: Symbol, b: Int, n: Int, a: Addr )
 	{
 		if (v ne null)
 			vars += (v -> a)
@@ -252,7 +254,7 @@ class WAM
 // 				put( x, i, h.read )
 // 				h += 2
 			case SetVariableInstruction( v, b, i ) =>
-				variable( v, b, i, h )
+				binding( v, b, i, h )
 				put( h, ref(h) )
 				put( regs(b), i, h.read )
 				h += 1
@@ -312,7 +314,7 @@ class WAM
 				
 //				s += 1
 			case PutVariableInstruction( v, b, n, i ) =>
-				variable( v, b, n, h )
+				binding( v, b, n, h )
 				put( h, ref(h) )
 				put( regs(b), n, h.read )
 				put( x, i, h.read )
@@ -390,8 +392,7 @@ class WAM
 					case _ => backtrack
 				}
 			case SetConstantInstruction( c ) =>
-				put( h, ConCell(c) )
-				h += 1
+				setConstant( c )
 			case UnifyConstantInstruction( c ) =>
 				mode match
 				{
@@ -471,6 +472,15 @@ class WAM
 			println( heap )
 			println
 		}
+	}
+	
+	protected def setConstant( c: Any ) =
+	{
+	val a = h
+	
+		put( h, ConCell(c) )
+		h += 1
+		a
 	}
 	
 	protected def ref( a: Address ) = PtrCell( 'ref, a )
