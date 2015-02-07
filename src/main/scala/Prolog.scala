@@ -435,7 +435,7 @@ object Prolog
 						case StringAST( s, _ ) =>
 							code += GetConstantInstruction( s, arg )
 						case AnonymousAST( _ ) =>
-							code += UnifyVoidInstruction( 1 )
+							// anonymous variable in argument position can be ignored - no code required
 					}
 				}
 
@@ -483,7 +483,7 @@ object Prolog
 	val pred =
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h, b), _ ) => indicator( h )
+			case StructureAST( RULE, IndexedSeq(h, _), _ ) => indicator( h )
 			case _ => indicator( c )
 		}
 	var target: Indicator = null
@@ -615,6 +615,8 @@ object Prolog
 				case GetConstantInstruction( c, i )		=> s"get_constant $c, $i"
 				case SetConstantInstruction( c )			=> s"set_constant $c"
 				case UnifyConstantInstruction( c )		=> s"unify_constant $c"
+				case SetVoidInstruction( n )				=> s"set_void $n"
+				case UnifyVoidInstruction( n )			=> s"unify_void $n"
 				} )
 		}
 	}

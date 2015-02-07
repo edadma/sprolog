@@ -22,7 +22,9 @@ class Basic extends FreeSpec with PropertyChecks with Matchers
 		
 		t( a ).
 		t( b ).
-		t( c ).		
+		t( c ).
+		
+		u( _, a, _ ).
 		""" )
 	
 		query( p, "A = a." ) shouldBe "A = a"
@@ -42,6 +44,7 @@ class Basic extends FreeSpec with PropertyChecks with Matchers
 				|A = b
 				|A = c
 				""".stripMargin.trim
+		query( p, "u( asdf, A, zxcv )." ) shouldBe "A = a"
 	}
 	
 	"types" in
