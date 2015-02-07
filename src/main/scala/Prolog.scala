@@ -351,10 +351,10 @@ object Prolog
 			code += ProceedInstruction()
 	}
 	
-	def rule( h: StructureAST, b: StructureAST, code: ArrayBuffer[Instruction], target: Indicator )
+	def rule( h: AST, b: AST, code: ArrayBuffer[Instruction], target: Indicator )
 	{
 	val permvars = permanent( b, new HashSet ++ structvars(h) )
-	val pred = Indicator(h.f, h.arity)
+	val pred = indicator( h )
 	
 		if (target eq null)
 			code += AllocateInstruction( permvars.size + 1 )
@@ -470,15 +470,21 @@ object Prolog
 		varmap
 	}
 	
+	def indicator( t: AST ) =
+		t match
+		{
+			case s: StructureAST => Indicator( s.f, s.arity )
+			case AtomAST( a, _ ) => Indicator( a, 0 )
+		}
+		
 	def clause( c: AST, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
 				proctype: HashMap[Indicator, Int], proclabel: HashMap[Indicator, Label] )
 	{
 	val pred =
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) => Indicator( h.f, h.arity )
-			case f: StructureAST => Indicator( f.f, f.arity )
-			case AtomAST( a, _ ) => Indicator( a, 0 )
+			case StructureAST( RULE, IndexedSeq(h, b), _ ) => indicator( h )
+			case _ => indicator( c )
 		}
 	var target: Indicator = null
 	
@@ -515,7 +521,7 @@ object Prolog
 		
 		c match
 		{
-			case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) => rule( h, b, code, target )
+			case StructureAST( RULE, Seq(h, b), _ ) => rule( h, b, code, target )
 			case f: StructureAST => fact( f, code, target )
 			case a: AtomAST => fact( a, code, target )
 		}
@@ -556,9 +562,8 @@ object Prolog
 		val pred =
 			c match
 			{
-				case StructureAST( RULE, IndexedSeq(h: StructureAST, b: StructureAST), _ ) => Indicator( h.f, h.arity )
-				case f: StructureAST => Indicator( f.f, f.arity )
-				case AtomAST( a, _ ) => Indicator( a, 0 )
+				case StructureAST( RULE, IndexedSeq(h, b), _ ) => indicator( h )
+				case _: StructureAST | _: AtomAST => indicator( c )
 				case _ => c.pos.error( "invalid fact or rule head" )
 			}
 			
