@@ -11,7 +11,7 @@ object TestMain extends App
 //	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ A = hello, call( (write(A), write(f(A))) ). """ )
+  	val q = Prolog.parseQuery( """ X = 123, (A = 1 ; A = 2). """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
