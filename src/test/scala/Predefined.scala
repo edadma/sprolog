@@ -11,6 +11,8 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 	"logic and control" in
 	{
 	val p = program( """
+		C -> T :- C, !, T.
+		
 		F ; _ :- F.
 		_ ; A :- A.
 		
@@ -30,5 +32,11 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 			"""	|A = 1, X = 123
 				|A = 2, X = 123
 				""".stripMargin.trim
+				
+		// -> 106
+		query( p, "X = 0 -> write('null')." ) shouldBe "nullX = 0"
+		query( p, "legs(A, 6) -> write(insect(A))." ) shouldBe "insect(bee)A = bee"
+		query( p, """X \= 0 -> write('positive').""" ) shouldBe "no"
+		query( p, "fail -> (true ; true)." ) shouldBe "no"
 	}
 }
