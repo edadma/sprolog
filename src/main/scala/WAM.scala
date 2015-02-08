@@ -312,7 +312,7 @@ class WAM
 			case ProceedInstruction() =>
 				p = cp
 			case AllocateInstruction( n ) =>
-				estack = new Frame( estack, cp, n )
+				estack = new Frame( estack, cp, n, b0 )
 				regs(1) = estack.perm
 			case DeallocateInstruction =>
 				p = estack.cp
@@ -430,6 +430,14 @@ class WAM
 				if (bstack ne b0)
 				{
 					bstack = b0
+				}
+			case GetLevelInstruction( n ) =>	// this is being done by 'allocate'
+//				estack.perm(n) = bstack
+//				estack.b0 = bstack
+			case CutInstruction/*( n )*/ =>
+				if (bstack ne estack.b0)
+				{
+					bstack = estack.b0
 				}
 		}
 		
@@ -583,6 +591,8 @@ case class TrustMeInstruction() extends Instruction
 case class PutRefInstruction( a: Addr, i: Int ) extends Instruction
 case class SetRefInstruction( a: Addr ) extends Instruction
 case object NeckCutInstruction extends Instruction
+case class GetLevelInstruction( n: Int ) extends Instruction
+case object CutInstruction/*( n: Int )*/ extends Instruction
 
 trait Address
 {
@@ -668,7 +678,7 @@ object Label
 	}
 }
 
-class Frame( val prev: Frame, val cp: Int, n: Int )
+class Frame( val prev: Frame, val cp: Int, n: Int, val b0: Choice )
 {
 	val perm = new Store( "Y", n )
 }

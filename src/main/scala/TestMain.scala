@@ -4,7 +4,7 @@ package ca.hyperreal.sprolog
 object TestMain extends App
 {
  	val p = Prolog.parseProgram( """
-		p( a ) :- !.
+		p( a ).
 		p( b ).
 		""" )
 	val pc = Prolog.compileProgram( p )
@@ -13,7 +13,7 @@ object TestMain extends App
 //	Prolog.listing( pc.code )
 	v.program = pc
 
-  	val q = Prolog.parseQuery( """ p( A ). """ )
+  	val q = Prolog.parseQuery( """ p( A ), !. """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

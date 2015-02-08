@@ -10,7 +10,32 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 {
 	"logic and control" in
 	{
+	val p = program( """
+		F ; _ :- F.
+		_ ; A :- A.
+		
+		insect( bee ).
+		insect( ant ) :- !.
+		insect( beetle ).
+		animal( horse ).
+		animal( cat ).
+		animal( dog ).
+		""" )
+			
 		// call 60
+		query( p, "insect(X)." ) shouldBe
+			"""	|X = bee
+				|X = ant
+				""".stripMargin.trim			
+		query( p, "insect(X), !." ) shouldBe "X = bee"
+		query( p, "(insect(X); animal(Y)), !." ) should fullyMatch regex """X = bee, Y = H\d+"""
+		query( p, "insect(X), !, animal(Y)." ) shouldBe
+			"""	|X = bee, Y = horse
+				|X = bee, Y = cat
+				|X = bee, Y = dog
+				""".stripMargin.trim			
+		
+		// ! 85
 		query( emptyProgram, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
 	}
 	

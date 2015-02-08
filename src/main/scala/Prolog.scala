@@ -335,6 +335,8 @@ object Prolog
 					}
 					
 					code += CallInstruction( Indicator(t.f, t.arity) )
+				case AtomAST( '!, _ ) =>
+					code += CutInstruction
 				case AtomAST( a, _ ) =>
 					code += CallInstruction( Indicator(a, 0) )
 			}
