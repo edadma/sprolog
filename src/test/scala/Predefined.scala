@@ -13,11 +13,14 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 	val p = program( """
 		If -> Then        :- If, !, Then.
 		If -> Then ; _    :- If, !, Then.
-		_  -> _    ; Else :- Else, !.
+		_  -> _    ; Else :- !, Else.		% the cut stops the rules for disjunction (;) from being tried
 		
 		F ; _ :- F.
 		_ ; A :- A.
 		
+		\+ Goal :- Goal, !, fail.
+		\+ _.
+
 		legs( A, 6 ) :- insect( A ).
 		legs( horse, 4 ).
 		insect( bee ).
@@ -47,5 +50,13 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 		query( p, "((!, X = 1, fail) -> true; fail); X = 2." ) shouldBe "X = 2"
 		query( p, "fail -> true ; true." ) shouldBe "yes"
 		query( p, "(!, X = 1, fail) -> true; fail." ) shouldBe "no"
+		
+		// \+ 115
+		query( p, """X = 3, \+ (X = 1 ; X = 2).""" ) shouldBe "X = 3"
+		query( p, """\+ fail.""" ) shouldBe "yes"
+		query( p, """\+ !; X = 1.""" ) shouldBe "X = 1"
+		query( p, """\+ (X = 1 ; X = 2), X = 3.""" ) shouldBe "no"
+		query( p, """X = 1, \+ (X = 1 ; X = 2).""" ) shouldBe "no"
+		evaluating {query( p, """\+ (fail, 1).""" )} should produce [RuntimeException]
 	}
 }

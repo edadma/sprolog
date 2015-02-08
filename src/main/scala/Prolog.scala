@@ -160,7 +160,7 @@ object Prolog
 // 			case StructureAST( COMMA, IndexedSeq(left, _), _ ) => left.pos.error( "not a structure" )
 			case _: StructureAST|_: AtomAST => Stream( q )
 			case _: VariableAST => Stream( transform(q) )
-			case _ => q.pos.error( "invalid query or rule body term" )
+			case _ => sys.error( "invalid query or rule body term: " + q )
 		}
 	}
 	
