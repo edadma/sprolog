@@ -311,6 +311,9 @@ class WAM
 				}
 			case ProceedInstruction() =>
 				p = cp
+			case CallAllocateInstruction( n ) =>
+				estack = new Frame( estack, cp, n, bstack )
+				regs(1) = estack.perm
 			case AllocateInstruction( n ) =>
 				estack = new Frame( estack, cp, n, b0 )
 				regs(1) = estack.perm
@@ -574,6 +577,7 @@ case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class CallInstruction( f: Indicator ) extends Instruction
 case class ProceedInstruction() extends Instruction	// a proceed instruction call have a label
+case class CallAllocateInstruction( n: Int ) extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
 case object DeallocateInstruction extends Instruction
 case class PutConstantInstruction( c: Any, i: Int ) extends Instruction

@@ -61,6 +61,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	val start = callcode.size
 	
 		Prolog.compileQuery( arg(1), callcode )
+		callcode(start) = CallAllocateInstruction( callcode(start).asInstanceOf[AllocateInstruction].n )
 		cp = p
 		p = start + QUERY
 		true

@@ -23,6 +23,14 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		""" )
 			
 		// call 60
+		query( emptyProgram, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
+		query( p, "call(!) ; true." ) shouldBe "yes"
+		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
+			"""	|X = 1
+				|X = 2
+				""".stripMargin.trim			
+		
+		// ! 85
 		query( p, "insect(X)." ) shouldBe
 			"""	|X = bee
 				|X = ant
@@ -34,9 +42,6 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 				|X = bee, Y = cat
 				|X = bee, Y = dog
 				""".stripMargin.trim			
-		
-		// ! 85
-		query( emptyProgram, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
 	}
 	
 	"term creation and decomposition" in

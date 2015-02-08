@@ -228,14 +228,14 @@ object Prolog
 	{
 	val seen = new HashSet[(Int, Int)] ++ varmap.values
 	val conj = conjunctive( q )
-	val terms =
-		if (conj.head.isInstanceOf[AtomAST] && conj.head.asInstanceOf[AtomAST].atom == '!)
-		{
-			code += NeckCutInstruction
-			conj.tail
-		}
-		else
-			conj
+	val terms = conj		// no neck-cut instruction is emitted so that all cuts can be "tricked" by CallAllocateInstruction inserted by 'call'
+// 		if (conj.head.isInstanceOf[AtomAST] && conj.head.asInstanceOf[AtomAST].atom == '!)
+// 		{
+// 			code += NeckCutInstruction
+// 			conj.tail
+// 		}
+// 		else
+// 			conj
 			
 		for (term <- terms)
 		{
