@@ -46,8 +46,6 @@ object Prolog
 						}),
 						args.map(_.v), functor.start.head.pos )
 		}
-	
-	val emptyProgram = new Program( Vector.empty[Instruction], Map.empty[Indicator, Int] )
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
 	
@@ -317,6 +315,8 @@ object Prolog
 												code += SetConstantInstruction( n )
 											case StringAST( s, _ ) =>
 												code += SetConstantInstruction( s )
+											case ConstantAST( c, _ ) =>
+												code += SetConstantInstruction( c )
 											case AnonymousAST( _ ) =>
 												code += SetVoidInstruction( 1 )
 										}
@@ -327,6 +327,8 @@ object Prolog
 								code += PutConstantInstruction( n, arg )
 							case StringAST( s, _ ) =>
 								code += PutConstantInstruction( s, arg )
+							case ConstantAST( c, _ ) =>
+								code += PutConstantInstruction( c, arg )
 							case AnonymousAST( _ ) =>
 								code += PutVoidInstruction( arg )
 						}
@@ -440,6 +442,8 @@ object Prolog
 										code += UnifyConstantInstruction( n )
 									case StringAST( s, _ ) =>
 										code += UnifyConstantInstruction( s )
+									case ConstantAST( c, _ ) =>
+										code += UnifyConstantInstruction( c )
 									case AnonymousAST( _ ) =>
 										code += UnifyVoidInstruction( 1 )
 								}
@@ -449,8 +453,10 @@ object Prolog
 							code += GetConstantInstruction( n, arg )
 						case StringAST( s, _ ) =>
 							code += GetConstantInstruction( s, arg )
+						case ConstantAST( c, _ ) =>
+							code += GetConstantInstruction( c, arg )
 						case AnonymousAST( _ ) =>
-							// anonymous variable in argument position can be ignored - no code required
+							// anonymous variable in head argument position can be ignored - no code required
 					}
 				}
 
@@ -475,6 +481,8 @@ object Prolog
 								code += UnifyConstantInstruction( n )
 							case StringAST( s, _ ) =>
 								code += UnifyConstantInstruction( s )
+							case ConstantAST( c, _ ) =>
+								code += UnifyConstantInstruction( c )
 							case AnonymousAST( _ ) =>
 								code += UnifyVoidInstruction( 1 )
 						}
@@ -484,16 +492,77 @@ object Prolog
 						
 		varmap
 	}
+	
+	def program( p: String ) = compileProgram( parseProgram(p) )
+	
+	def query( db: Database, q: String ) =
+	{
+	val buf = new StringBuilder
+	val out = new ByteArrayOutputStream
+	val vm = new PrologVM
+	
+		vm.db = db
+		Console.withOut( new PrintStream(out, true) ) {vm query compileQuery(parseQuery(q))}
+		out.toString.trim
+	}
+	
+	def queryOnce( db: Database, q: String ) =
+	{
+	val buf = new StringBuilder
+	val out = new ByteArrayOutputStream
+	val vm = new PrologVM
+	
+		vm.db = db
+		Console.withOut( new PrintStream(out, true) ) {vm queryOnce compileQuery(parseQuery(q))}
+		out.toString.trim
+	}
+	
+	def compileProgram( cs: List[AST], db: Database = new Database ) =
+	{
+	val proctype = new HashMap[Indicator, Int]
+	val proclabel = new HashMap[Indicator, Label]
+	val procmap = new HashMap[Indicator, Int]
+	val procedures = new HashMap[Indicator, ArrayBuffer[Clause]]
+	
+		for (c <- cs)
+		{
+		val (pred, clause) =
+			c match
+			{
+				case StructureAST( RULE, IndexedSeq(h, b), _ ) => (indicator( h ), Clause( h, b ))
+				case _: StructureAST | _: AtomAST => (indicator( c ), Clause( c, AtomAST('true) ))
+				case _ => c.pos.error( "invalid fact or rule head" )
+			}
+			
+			procedures.get( pred ) match
+			{
+				case None => procedures(pred) = ArrayBuffer( clause )
+				case Some( buf ) => buf += clause
+			}
+			
+			if (proctype contains pred)
+				proctype(pred) += 1
+			else
+				proctype(pred) = 1
+		}
 		
-	def clause( c: AST, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
+		for ((p, cs) <- procedures)
+		{
+		val code = new ArrayBuffer[Instruction]
+	
+			for (c <- cs)
+				clause( c, code, procmap, proctype, proclabel )
+				
+			db.procedure( p, cs.toList, code )
+		}
+		
+		db
+	}
+		
+	def clause( c: Clause, code: ArrayBuffer[Instruction], procmap: HashMap[Indicator, Int],
 				proctype: HashMap[Indicator, Int], proclabel: HashMap[Indicator, Label] )
 	{
-	val pred =
-		c match
-		{
-			case StructureAST( RULE, IndexedSeq(h, _), _ ) => indicator( h )
-			case _ => indicator( c )
-		}
+	val pred = indicator( c.head )
 	var target: Indicator = null
 	
 		if (procmap contains pred)
@@ -529,65 +598,10 @@ object Prolog
 		
 		c match
 		{
-			case StructureAST( RULE, Seq(h, b), _ ) => rule( h, b, code, target )
-			case f: StructureAST => fact( f, code, target )
-			case a: AtomAST => fact( a, code, target )
+			case Clause( f: StructureAST, AtomAST('true, _) ) => fact( f, code, target )
+			case Clause( a: AtomAST, AtomAST('true, _) ) => fact( a, code, target )
+			case Clause( h, b ) => rule( h, b, code, target )
 		}
-	}
-	
-	def program( p: String ) = compileProgram( parseProgram(p) )
-	
-	def query( p: Program, q: String ) =
-	{
-	val buf = new StringBuilder
-	val out = new ByteArrayOutputStream
-	val vm = new PrologVM
-	
-		vm.program = p
-		Console.withOut( new PrintStream(out, true) ) {vm query compileQuery(parseQuery(q))}
-		out.toString.trim
-	}
-	
-	def queryOnce( p: Program, q: String ) =
-	{
-	val buf = new StringBuilder
-	val out = new ByteArrayOutputStream
-	val vm = new PrologVM
-	
-		vm.program = p
-		Console.withOut( new PrintStream(out, true) ) {vm queryOnce compileQuery(parseQuery(q))}
-		out.toString.trim
-	}
-	
-	def compileProgram( cs: List[AST] ) =
-	{
-	val proctype = new HashMap[Indicator, Int]
-	val proclabel = new HashMap[Indicator, Label]
-	val procmap = new HashMap[Indicator, Int]
-	
-		for (c <- cs)
-		{
-		val pred =
-			c match
-			{
-				case StructureAST( RULE, IndexedSeq(h, b), _ ) => indicator( h )
-				case _: StructureAST | _: AtomAST => indicator( c )
-				case _ => c.pos.error( "invalid fact or rule head" )
-			}
-			
-			if (proctype contains pred)
-				proctype(pred) += 1
-			else
-				proctype(pred) = 1
-		}
-		
-	val code = new ArrayBuffer[Instruction]
-	val permvars = Map[Symbol, Int]()
-	
-		for (c <- cs)
-			clause( c, code, procmap, proctype, proclabel )
-		
-		new Program( code.toVector, procmap.toMap )
 	}
 	
 	def listing( code: Seq[Instruction] )

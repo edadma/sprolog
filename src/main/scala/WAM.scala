@@ -6,7 +6,7 @@ import collection.immutable.SortedMap
 
 class WAM
 {
-	var program: Program = _
+	var db: Database = _
 	
 	protected val trace = false
 	protected val step = false
@@ -209,7 +209,7 @@ class WAM
 		
 			p += 1
 			
-			perform( if (p < QUERY) program.code(_p) else callcode(_p - QUERY) )
+			perform( if (p < QUERY) db.instruction(_p) else callcode(_p - QUERY) )
 		}
 		
 		fail
@@ -329,7 +329,7 @@ class WAM
 				if (!unify( new Addr(regs(b), n), new Addr(x, i) ))
 					backtrack
 			case CallInstruction( f ) =>
-				program.procmap.get( f ) match
+				db.address( f ) match
 				{
 					case None =>
 						callables.get( f ) match
@@ -747,11 +747,6 @@ class Store( val name: String, init: Int ) extends ArrayBuffer[Cell]( init )
 			
 		buf.toString
 	}
-}
-
-class Program( val code: IndexedSeq[Instruction], val procmap: collection.Map[Indicator, Int] )
-{
-	override def toString = code + "\n" + procmap
 }
 
 abstract class WAMInterface( val wam: WAM )

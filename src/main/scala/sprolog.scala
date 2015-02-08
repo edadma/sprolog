@@ -6,8 +6,16 @@ package object sprolog
 	val DOT = Symbol( "." )
 	val NIL = Symbol( "[]" )
 	
-	case class Indicator( functor: Symbol, arity: Int )
+	case class Indicator( functor: Symbol, arity: Int ) extends Ordered[Indicator]
 	{
+		def compare( that: Indicator ) =
+			if (functor.name < that.functor.name)
+				-1
+			else if (functor.name > that.functor.name)
+				1
+			else
+				arity - that.arity
+				
 		override def toString = functor.name + "/" + arity
 	}
 	

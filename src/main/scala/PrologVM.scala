@@ -157,4 +157,9 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	{
 		unify( setConstant(constant(constant(arg(1)).asInstanceOf[Iterator[Any]].next.asInstanceOf[AST])), addr(2) )
 	}
+	
+	define( "hasNext_", 1 )
+	{
+		constant(arg(1)).asInstanceOf[Iterator[Any]].hasNext
+	}
 }
