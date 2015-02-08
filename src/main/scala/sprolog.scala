@@ -15,6 +15,41 @@ package object sprolog
 			case AtomAST( a, _ ) => Indicator( a, 0 )
 		}
 	
+	def unbound( a: Address ) =
+		a.read match
+		{
+			case PtrCell('ref, ptr ) if ptr == a => true
+			case _ => false
+		}
+	
+	def deref( store: Store, a: Int ): Address = deref( new Addr(store, a) )
+	
+	def deref( a: Address ): Address =
+		a.read match
+		{
+			case PtrCell( 'ref, v ) if v != a => deref( v )
+			case _ => a
+		}
+	
+	def read( a: Address ): AST =
+	{
+		deref( a ).read match
+		{
+			case PtrCell( 'ref, a: Addr ) => a
+			case PtrCell( 'str, p: Addr ) =>
+				val FunCell( f, n ) = p.read
+				
+				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
+			case ConCell( c ) =>
+				c match
+				{
+					case s: Symbol => AtomAST( s )
+					case n: Number => NumberAST( n )
+					case s: String => StringAST( s )
+				}
+		}
+	}
+	
 	def atom( t: AST ) = t.isInstanceOf[AtomAST]
 	
 	def atomic( t: AST ) =

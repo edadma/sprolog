@@ -224,12 +224,20 @@ object Prolog
 		code
 	}
 	
-	// add put_ref and set_ref instructions
 	def body( q: AST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int], varmap: HashMap[Symbol, (Int, Int)], variables: Boolean )
 	{
 	val seen = new HashSet[(Int, Int)] ++ varmap.values
-	
-		for (term <- conjunctive( q ))
+	val conj = conjunctive( q )
+	val terms =
+		if (conj.head.isInstanceOf[AtomAST] && conj.head.asInstanceOf[AtomAST].atom == '!)
+		{
+			code += NeckCutInstruction
+			conj.tail
+		}
+		else
+			conj
+			
+		for (term <- terms)
 		{
 			term match
 			{

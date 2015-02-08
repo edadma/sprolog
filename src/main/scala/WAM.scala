@@ -17,6 +17,7 @@ class WAM
 	protected val trail = new ArrayStack[Address]
 	protected var estack: Frame = null
 	protected var bstack: Choice = null
+	protected var b0: Choice = null
 	protected var h: Addr = _
 	protected var hb: Addr = _
 	protected var s: Addr = _
@@ -123,41 +124,6 @@ class WAM
 			backtrack
 			run
 		}
-	
-	def unbound( a: Address ) =
-		a.read match
-		{
-			case PtrCell('ref, ptr ) if ptr == a => true
-			case _ => false
-		}
-	
-	def deref( store: Store, a: Int ): Address = deref( new Addr(store, a) )
-	
-	def deref( a: Address ): Address =
-		a.read match
-		{
-			case PtrCell( 'ref, v ) if v != a => deref( v )
-			case _ => a
-		}
-	
-	def read( a: Address ): AST =
-	{
-		deref( a ).read match
-		{
-			case PtrCell( 'ref, a: Addr ) => a
-			case PtrCell( 'str, p: Addr ) =>
-				val FunCell( f, n ) = p.read
-				
-				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
-			case ConCell( c ) =>
-				c match
-				{
-					case s: Symbol => AtomAST( s )
-					case n: Number => NumberAST( n )
-					case s: String => StringAST( s )
-				}
-		}
-	}
 	
 	def addr( a: Int ) = deref( new Addr(x, a) )
 	
@@ -338,8 +304,9 @@ class WAM
 									backtrack
 						}
 					case Some( loc ) =>
-						argc = f.arity
 						cp = p	//p is incremented prior to instruction execution
+						argc = f.arity
+						b0 = bstack
 						p = loc
 				}
 			case ProceedInstruction() =>
@@ -459,6 +426,11 @@ class WAM
 			case SetRefInstruction( a ) =>
 				put( h, ref(a) )
 				h += 1
+			case NeckCutInstruction =>
+				if (bstack ne b0)
+				{
+					bstack = b0
+				}
 		}
 		
 		if (trace)
@@ -593,7 +565,7 @@ case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class CallInstruction( f: Indicator ) extends Instruction
-case class ProceedInstruction() extends Instruction
+case class ProceedInstruction() extends Instruction	// a proceed instruction call have a label
 case class AllocateInstruction( n: Int ) extends Instruction
 case object DeallocateInstruction extends Instruction
 case class PutConstantInstruction( c: Any, i: Int ) extends Instruction
@@ -610,6 +582,7 @@ case class RetryMeElseInstruction( t: Label ) extends Instruction
 case class TrustMeInstruction() extends Instruction
 case class PutRefInstruction( a: Addr, i: Int ) extends Instruction
 case class SetRefInstruction( a: Addr ) extends Instruction
+case object NeckCutInstruction extends Instruction
 
 trait Address
 {
