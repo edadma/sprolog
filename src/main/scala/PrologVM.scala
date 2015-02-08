@@ -142,7 +142,19 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "write", 1 )
 	{
-		print( Prolog.display(arg(1)) )
+		print( display(arg(1)) )
 		true
+	}
+	
+	define( "iterator_", 2 )
+	{
+	val l = arg( 1 )
+	
+		list( l ) && unify( setConstant(toList(l).iterator), addr(2) )
+	}
+	
+	define( "next_", 2 )
+	{
+		unify( setConstant(constant(constant(arg(1)).asInstanceOf[Iterator[Any]].next.asInstanceOf[AST])), addr(2) )
 	}
 }

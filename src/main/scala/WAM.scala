@@ -77,7 +77,7 @@ class WAM
 			{
 				while (success)
 				{
-					println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+					println( display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
 					resume
 				}
 			}
@@ -93,7 +93,7 @@ class WAM
 			if (bindings isEmpty)
 				println( "yes" )
 			else
-				println( Prolog.display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+				println( display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
 		}
 	}
 	
@@ -124,6 +124,42 @@ class WAM
 			backtrack
 			run
 		}
+	
+	def unbound( a: Address ) =
+		a.read match
+		{
+			case PtrCell('ref, ptr ) if ptr == a => true
+			case _ => false
+		}
+	
+	def deref( store: Store, a: Int ): Address = deref( new Addr(store, a) )
+	
+	def deref( a: Address ): Address =
+		a.read match
+		{
+			case PtrCell( 'ref, v ) if v != a => deref( v )
+			case _ => a
+		}
+	
+	def read( a: Address ): AST =
+	{
+		deref( a ).read match
+		{
+			case PtrCell( 'ref, a: Addr ) => a
+			case PtrCell( 'str, p: Addr ) =>
+				val FunCell( f, n ) = p.read
+				
+				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
+			case ConCell( c ) =>
+				c match
+				{
+					case s: Symbol => AtomAST( s )
+					case n: Number => NumberAST( n )
+					case s: String => StringAST( s )
+					case _ => ConstantAST( c )
+				}
+		}
+	}
 	
 	def addr( a: Int ) = deref( new Addr(x, a) )
 	

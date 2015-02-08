@@ -11,6 +11,7 @@ abstract class AST
 case class AtomAST( atom: Symbol, pos: Position = null ) extends AST
 case class NumberAST( n: Number, pos: Position = null ) extends AST
 case class StringAST( s: String, pos: Position = null ) extends AST
+case class ConstantAST( c: Any, pos: Position = null ) extends AST
 case class VariableAST( v: Symbol, pos: Position = null ) extends AST
 case class AnonymousAST( pos: Position = null ) extends AST
 case class StructureAST( f: Symbol, args: IndexedSeq[AST], pos: Position = null ) extends AST
