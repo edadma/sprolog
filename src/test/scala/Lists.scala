@@ -26,15 +26,27 @@ class Lists extends FreeSpec with PropertyChecks with Matchers
 	
 	"subset" in
 	{
-	val p = program( """
-		subset( [], _ ).
-		subset( [H|T], L ) :-
-			member( H, L ),
-			subset( T, L ).
-		""" )
+		query( db, "subset( [b, c], [d, a, c, b] )." ) shouldBe "yes"
+		query( db, "subset( [e, b, c], [d, a, c, b] )." ) shouldBe "no"
+	}
 	
-		query( p, "subset( [b, c], [d, a, c, b] )." ) shouldBe "yes"
-		query( p, "subset( [e, b, c], [d, a, c, b] )." ) shouldBe "no"
+	"sum_list" in
+	{
+		query( db, "sum_list( [4, 5, 6], S )." ) shouldBe "S = 15"
+		query( db, "sum_list( [], S )." ) shouldBe "S = 0"
+	}
+	
+	"is_list" in
+	{
+		query( db, "is_list( [4, 5, 6] )." ) shouldBe "yes"
+		query( db, "is_list( [] )." ) shouldBe "yes"
+		query( db, "is_list( 4 )." ) shouldBe "no"
+	}
+	
+	"length" in
+	{
+		query( db, "length( [4, 5, 6], L )." ) shouldBe "L = 3"
+		query( db, "length( [], L )." ) shouldBe "L = 0"
 	}
 	
 	"intersection" in

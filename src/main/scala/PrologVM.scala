@@ -117,6 +117,11 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 			false
 	}
 	
+	define( "is_list", 1 )
+	{
+		list( arg(1) )
+	}
+	
 	define( "integer", 1 )
 	{
 		arg(1) match
