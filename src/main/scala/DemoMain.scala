@@ -4,9 +4,6 @@ package ca.hyperreal.sprolog
 object DemoMain extends App
 {
 	val p = Prolog.program( """
-		member( X, [X|_] ).
-		member( X, [_|T] ) :- member( X, T ).
-		
 		pivoting( H, [], [], [] ).
 		pivoting( H, [X|T], [X|L], G ) :- X >= H, pivoting( H, T, L, G ).
 		pivoting( H, [X|T], L, [X|G] ) :- X < H, pivoting( H, T, L, G ).

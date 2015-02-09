@@ -1,16 +1,13 @@
 S-Prolog
 ========
 
-This is a Warren Abstract Machine based Prolog interpreter in Scala.  Currently, a fairly useful subset of the WAM instruction set is implemented.  There is no tail recursion optimization yet.  Many of the WAM optimization instructions are not yet implemented, however the ones supporting constants and anonymous variables are.  Most of the built-in predicates that are regularly used are implemented or can be defined, and those that are to be predefined are covered in unit tests (Predefined.scala).
+This is a Warren Abstract Machine based Prolog interpreter in Scala.  Currently, a fairly useful subset of the WAM instruction set is implemented.  There is no tail recursion optimization yet.  Many of the WAM optimization instructions are not yet implemented, however the ones supporting constants and anonymous variables are.  A fair number of the standard built-in predicates that are regularly used are implemented.
 
 It will aim to be a subset of ISO Prolog including a standard Prolog parser using https://github.com/edadma/rtcep.
 
 Here is an example of what it can do so far.
 
     val p = Prolog.program( """
-        member( X, [X|_] ).
-        member( X, [_|T] ) :- member( X, T ).
-        
 		pivoting( H, [], [], [] ).
 		pivoting( H, [X|T], [X|L], G ) :- X >= H, pivoting( H, T, L, G ).
 		pivoting( H, [X|T], L, [X|G] ) :- X < H, pivoting( H, T, L, G ).
