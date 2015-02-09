@@ -236,6 +236,12 @@ class WAM
 	
 	protected def perform( inst: Instruction )
 	{
+		def trim
+		{
+			h = bstack.h
+			heap.remove( h.ind, heap.size - h.ind )
+		}
+		
 		if (trace)
 		{
 			println( s"${p - 1}: $inst" )
@@ -371,7 +377,7 @@ class WAM
 				cp = bstack.cp
 				bstack.bp = p + t.offset
 				unwind( bstack.tr )
-				h = bstack.h
+				trim
 				hb = h
 			case TrustMeInstruction() =>
 				bstack.restore
@@ -379,7 +385,7 @@ class WAM
 				regs(1) = estack.perm
 				cp = bstack.cp
 				unwind( bstack.tr )
-				h = bstack.h
+				trim
 				hb = h	// this may be wrong, pg. 57 wambook.pdf
 				bstack = bstack.prev
 			case PutConstantInstruction( c, i ) =>
