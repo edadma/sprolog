@@ -51,6 +51,24 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	define( "=", 2 ) (unify(addr(1), addr(2)))
 	
 	define( "\\=", 2 ) (!unify(addr(1), addr(2)))
+		
+	define( "arg", 3 )
+	{
+	val n = integer( 1 )
+	val term = addr( 2 )
+	
+		if (unbound( term ))
+			sys.error( "instantiation_error" )
+
+		if (n < 0)
+			sys.error( "domain_error" )
+
+		term.read match
+		{
+			case PtrCell( 'str, a: Addr ) => n > 0 && n <= a.read.asInstanceOf[FunCell].n && unify( a + n, addr(3) )
+			case _ => sys.error( "expected a structure" )
+		}
+	}
 	
 	define( "atom", 1 ) (atom( arg(1) ))
 	

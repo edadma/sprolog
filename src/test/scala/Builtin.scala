@@ -43,6 +43,12 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 	
 	"term creation and decomposition" in
 	{
+		// arg 39
+		query( db, "arg(2, foo(a, b, c), X)." ) shouldBe "X = b"
+		query( db, "arg(2, foo(a, f(X, b), c), f(a, Y))." ) shouldBe "X = a, Y = b"
+		query( db, "arg(1, foo(a, b, c), b)." ) shouldBe "no"
+		
+		// functor 93
 		query( db, "functor( asdf, A, B )." ) shouldBe "A = asdf, B = 0"
 		query( db, "functor( 1.5, A, B )." ) shouldBe "A = 1.5, B = 0"
 		query( db, "functor( A, asdf, 0 )." ) shouldBe "A = asdf"
