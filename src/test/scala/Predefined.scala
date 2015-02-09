@@ -10,22 +10,7 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 {
 	"logic and control" in
 	{
-	val p = program( """
-		If -> Then        :- If, !, Then.
-		If -> Then ; _    :- If, !, Then.
-		_  -> _    ; Else :- !, Else.		% the cut stops the rules for disjunction (;) from being tried
-		
-		F ; _ :- F.
-		_ ; A :- A.
-		
-		\+ Goal :- Goal, !, fail.
-		\+ _.
-
-		once( Goal ) :- Goal, !.
-		
-		repeat.
-		repeat :- repeat.
-		
+	val p = program( """		
 		legs( A, 6 ) :- insect( A ).
 		legs( horse, 4 ).
 		insect( bee ).

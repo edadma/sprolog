@@ -4,16 +4,6 @@ package ca.hyperreal.sprolog
 object TestMain extends App
 {
  	val p = Prolog.parseProgram( """
-		\+ Goal :- Goal, !, fail.
-		\+ _.
-		
-		If -> Then        :- If, !, Then.
-		If -> Then ; _    :- If, !, Then.
-		_  -> _    ; Else :- !, Else.		% the cut stops the rules for disjunction (;) from being tried
-		
-		repeat.
-		repeat :- repeat.
-		
 		while_( C ) :- C.
 		while_( C ) :- C, while_( C ).
 		
@@ -31,7 +21,7 @@ object TestMain extends App
 //	Prolog.listing( pc.code )
 	v.db = db
 
-  	val q = Prolog.parseQuery( """ iterate( [1,2,3], V ). """ )
+  	val q = Prolog.parseQuery( """ X = 1, (X = 0 -> write('null'); write('positive')). """ )//iterate( [1,2,3], V )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

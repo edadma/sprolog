@@ -46,7 +46,9 @@ object Prolog
 						}),
 						args.map(_.v), functor.start.head.pos )
 		}
-		
+	
+	val db = new PrologDB
+
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
 	
 	def parseQuery( s: String ) =
@@ -517,7 +519,7 @@ object Prolog
 		out.toString.trim
 	}
 	
-	def compileProgram( cs: List[AST], db: Database = new Database ) =
+	def compileProgram( cs: List[AST], db: Database = new PrologDB ) =
 	{
 	val proctype = new HashMap[Indicator, Int]
 	val proclabel = new HashMap[Indicator, Label]

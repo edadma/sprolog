@@ -12,12 +12,6 @@ class Sorting extends FreeSpec with PropertyChecks with Matchers
 	{
 	val p = program( """
 		naive_sort( List, Sorted ):- permutation( List, Sorted ), is_sorted( Sorted ).
-		
-		delete( X, [X|R], R ).
-		delete( X, [F|R], [F|S] ) :- delete( X, R, S ).
-		
-		permutation( [], [] ).
-		permutation( [X|Y], Z ) :- permutation( Y, W ), delete( X, Z, W ).   
 
 		is_sorted( [] ).
 		is_sorted( [_] ).
@@ -48,12 +42,6 @@ class Sorting extends FreeSpec with PropertyChecks with Matchers
 	"merge_sort" in
 	{
 	val p = program( """
-		halve( L, A, B ) :- hv( L, L, A, B ).
-		
-		hv( [], R, [], R ).   % for lists of even length
-		hv( [_], R, [], R ).  % for lists of odd length
-		hv( [_, _|T], [X|L], [X|L1], R ) :- hv( T, L, L1, R ).
-		
 		merge_sort( [], [] ).     % empty list is already sorted
 		merge_sort( [X], [X] ).   % single element list is already sorted
 		merge_sort( List, Sorted ):-
