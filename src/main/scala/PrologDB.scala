@@ -48,6 +48,14 @@ class PrologDB extends Database
 		subset( [H|T], L ) :-
 			member( H, L ),
 			subset( T, L ).
+
+		union( [], X, X ) :- !.
+		union( [X|R], Y, Z ) :- member( X, Y ), union( R, Y, Z ), !.
+		union( [X|R], Y, [X|Z] ) :- union( R, Y, Z ).
+
+		intersect( [], X, [] ) :- !.
+		intersect( [X|R], Y, [X|T] ) :- member( X, Y ), intersect( R, Y, T ), !.
+		intersect( [X|R], Y, L ) :- intersect( R, Y, L ).
 			
 		length( Xs, L ) :- length_( Xs, 0, L ) .
 
