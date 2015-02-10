@@ -163,19 +163,9 @@ class WAM
 	
 	def addr( a: Int ) = deref( new Addr(x, a) )
 	
-	def argvar( a: Int ) =
-	{
-	val d = addr( a )
-	
-		if (unbound( d ))
-			d
-		else
-			read( d )
-	}
-	
 	def arg( a: Int ) = read( addr(a) )
 	
-	def inst( a: Int ) =
+	def argInstantiated( a: Int ) =
 	{
 	val v = arg( a )
 	
@@ -183,24 +173,54 @@ class WAM
 		v
 	}
 	
-	def number( a: Int ) =
+	def argNumber( a: Int ) =
 	{
-	val v = inst( a )
+	val v = argInstantiated( a )
 	
 		require( v.isInstanceOf[NumberAST], "expected number" )
 		v.asInstanceOf[NumberAST].n
 	}
 	
-	def integer( a: Int ) =
+	def argInteger( a: Int ) =
 	{
-	val v = number( a )
+	val v = argNumber( a )
 	
 		require( v.isInstanceOf[Int], "expected integer" )
 		v.asInstanceOf[Int]
 	}
+
+	def isInteger( t: AST ) = t.isInstanceOf[NumberAST] && t.asInstanceOf[NumberAST].n.isInstanceOf[Int]
+
+	def asInteger( t: AST ) = t.asInstanceOf[NumberAST].n.asInstanceOf[Int]
+
+	def asSymbol( t: AST ) = t.asInstanceOf[AtomAST].atom
 	
-	def integer( t: AST ) = t.isInstanceOf[NumberAST] && t.asInstanceOf[NumberAST].n.isInstanceOf[Int]
+	def putStructure( f: Symbol, args: Seq[Addr] ) =
+	{
+	val s = h
 	
+		put( h, str(h + 1) )
+		put( h + 1, FunCell(f, args.length) )
+		h += 2
+		
+		for (a <- args)
+		{
+			put( h, ref(a) )
+			h += 1
+		}
+		
+		s
+	}
+	
+	def structureArg( a: Address, n: Int ) = deref( a ).read match {case PtrCell( 'str, s: Addr ) => s + n}
+	
+	def isCompound( a: Address ) =
+		deref( a ).read match
+		{
+			case PtrCell( 'str, _ ) => true
+			case _ => false
+		}
+		
 	protected def run =
 	{
 		while (p > -1 && !fail)

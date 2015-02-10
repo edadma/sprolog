@@ -56,6 +56,9 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		query( db, "functor( foo(aa, X), Y, Z )." ) should fullyMatch regex """X = H\d+, Y = foo, Z = 2"""
 		query( db, "functor( X, foo, 3 )." ) should fullyMatch regex """X = foo\(H\d+, H\d+, H\d+\)"""
 		query( db, "functor( F, 1.5, 1 )." ) shouldBe "no"
+		
+		// univ 179
+		
 	}
 	
 	"term comparison" in

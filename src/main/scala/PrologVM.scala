@@ -22,7 +22,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	{
 	val v = eval(2)
 	
-		argvar(1) match
+		arg(1) match
 		{
 			case NumberAST( n, _ ) => n == v && n.getClass == v.getClass
 			case a: Addr =>
@@ -54,7 +54,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		
 	define( "arg", 3 )
 	{
-	val n = integer( 1 )
+	val n = argInteger( 1 )
 	val term = addr( 2 )
 	
 		if (unbound( term ))
@@ -63,11 +63,10 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		if (n < 0)
 			sys.error( "domain_error" )
 
-		term.read match
-		{
-			case PtrCell( 'str, a: Addr ) => n > 0 && n <= a.read.asInstanceOf[FunCell].n && unify( a + n, addr(3) )
-			case _ => sys.error( "expected a structure" )
-		}
+		if (isCompound( term ))
+			unify( structureArg(term, n), addr(3) )
+		else
+			sys.error( "expected a structure" )
 	}
 	
 	define( "atom", 1 ) (atom( arg(1) ))
@@ -112,24 +111,13 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		}
 		else if (atomic( term ))
 			unify( setConstant(constant( term )), addr(2) ) && unify( setConstant(0), addr(3) )
-		else if (variable( term ) && atomic( name ) && integer( arity ) && constant( arity ) == 0)
+		else if (variable( term ) && atomic( name ) && isInteger( arity ) && asInteger( arity ) == 0)
 			unify( addr(1), addr(2) )
-		else if (variable( term ) && atom( name ) && integer( arity ) && constant( arity ).asInstanceOf[Int] > 0)
+		else if (variable( term ) && atom( name ) && isInteger( arity ) && asInteger( arity ) > 0)
 		{
-		val _arity = constant( arity ).asInstanceOf[Int]
-		val s = h
-		
-			put( h, str(h + 1) )
-			put( h + 1, FunCell(constant(name).asInstanceOf[Symbol], _arity) )
-			h += 2
-			
-			for (i <- 1 to _arity)
-			{
-				put( h, ref(h) )
-				h += 1
-			}
-			
-			unify( s, addr(1) )
+		val _arity = asInteger( arity )
+					
+			unify( putStructure(asSymbol(name), for (i <- 1 to _arity) yield h + 1 + i), addr(1) )
 		}
 		else
 			false
@@ -162,6 +150,14 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	define( "var", 1 ) (unbound(addr(1)))
 	
 	define( "true", 0 ) (true)
+	
+// 	define( "=..", 2 )
+// 	{
+// 	val left = arg( 1 )
+// 	
+// 		if (compound( left ))
+// 			
+// 	}
 	
 	define( "write", 1 )
 	{
