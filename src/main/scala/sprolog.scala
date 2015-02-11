@@ -28,6 +28,8 @@ package object sprolog
 	
 	def atom( t: AST ) = t.isInstanceOf[AtomAST]
 	
+	def asAtom( t: AST ) = t.asInstanceOf[AtomAST]
+	
 	def atomic( t: AST ) =
 		t match
 		{
@@ -49,11 +51,11 @@ package object sprolog
 	
 	def variable( t: AST ) = t.isInstanceOf[Addr]
 
-	def list( a: AST ): Boolean =
+	def isList( a: AST ): Boolean =
 		a match
 		{
 			case AtomAST( NIL, _ ) => true
-			case StructureAST( DOT, IndexedSeq(head, tail), _ ) if list( tail ) => true
+			case StructureAST( DOT, IndexedSeq(head, tail), _ ) if isList( tail ) => true
 			case _ => false
 		}
 		
@@ -75,7 +77,7 @@ package object sprolog
 			case VariableAST( s, _ ) => s.name
 			case _: Addr => a.toString
 			case StructureAST( f, IndexedSeq(), _ ) => f.name
-			case s: StructureAST if list( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
+			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
 			case StructureAST( f, args, _ ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
 			case ConstantAST( c, _ ) => c.toString
 		}

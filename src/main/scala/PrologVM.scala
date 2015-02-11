@@ -125,7 +125,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "is_list", 1 )
 	{
-		list( arg(1) )
+		isList( arg(1) )
 	}
 	
 	define( "integer", 1 )
@@ -153,9 +153,24 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 // 	define( "=..", 2 )
 // 	{
-// 	val left = arg( 1 )
+// 	val term = addr( 1 )
 // 	
-// 		if (compound( left ))
+// 		if (unbound( term ))
+// 		{
+// 		val list argInstantiated( 2 )
+// 	
+// 			if (isList( list ))
+// 				toList( list ) match
+// 				{
+// 					case List( c ) => unify( term, c )
+// 					case f :: args =>
+// 						if (atom( f ))
+// 							putStructure( asAtom(f)
+// 				}
+// 			else
+// 				sys.error( "expected list" )
+// 		}
+// 		
 // 			
 // 	}
 	
@@ -169,7 +184,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	{
 	val l = arg( 1 )
 	
-		list( l ) && unify( setConstant(toList(l).iterator), addr(2) )
+		isList( l ) && unify( setConstant(toList(l).iterator), addr(2) )
 	}
 	
 	define( "next_", 2 )
