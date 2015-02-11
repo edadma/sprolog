@@ -150,6 +150,8 @@ class WAM
 				val FunCell( f, n ) = p.read
 				
 				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
+			case LisCell( a ) =>
+				StructureAST( DOT, IndexedSeq(read(a), read(a + 1)) )
 			case ConCell( c ) =>
 				c match
 				{
@@ -606,6 +608,11 @@ class WAM
 							}
 						else
 							matches = false
+					case (LisCell( v1 ), LisCell( v2 )) =>
+						pdl push v1
+						pdl push v2
+						pdl push (v1 + 1)
+						pdl push (v2 + 1)
 					case _ => matches = false
 				}
 		}

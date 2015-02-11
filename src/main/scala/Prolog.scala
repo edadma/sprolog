@@ -295,7 +295,11 @@ object Prolog
 								
 								for (e <- eqs)
 								{
-									code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+									if (e._2.f == DOT && e._2.arity == 2)
+										code += PutListInstruction( e._1 )
+									else
+										code += PutStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+										
 									seen add (0, e._1)
 									
 									for (a <- e._2.args)
@@ -424,7 +428,11 @@ object Prolog
 							
 							val e = regmap(arg)
 							
-							code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
+							if (e.f == DOT && e.arity == 2)
+								code += GetListInstruction( arg )
+							else
+								code += GetStructureInstruction( FunCell(e.f, e.arity), arg )
+								
 							seen add (0, arg)
 							
 							for (a <- e.args)
@@ -464,7 +472,10 @@ object Prolog
 
 				for (e <- regmap.toSeq.filter( a => a._1 > p.arity ).sortWith( (a, b) => a._1 < b._1 ))
 				{
-					code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
+					if (e._2.f == DOT && e._2.arity == 2)
+						code += GetListInstruction( e._1 )
+					else
+						code += GetStructureInstruction( FunCell(e._2.f, e._2.arity), e._1 )
 					
 					for (a <- e._2.args)
 						a match
