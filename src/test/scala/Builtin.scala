@@ -58,12 +58,12 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		query( db, "functor( F, 1.5, 1 )." ) shouldBe "no"
 		
 		// univ 179
-// 		query( db, "A =.. [f, a]." ) shouldBe "A = f(a)"
-// 		query( db, "A =.. [f]." ) shouldBe "A = f"
-// 		query( db, "A =.. [f(a)]." ) shouldBe "no"
-// 		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"
-// 		query( db, "A =.. [f, 1, g(b)]." ) shouldBe "A = f(1, g(b))"
-// 		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
+ 		query( db, "A =.. [f, a]." ) shouldBe "A = f(a)"
+		query( db, "A =.. [f]." ) shouldBe "A = f"
+		query( db, "A =.. [f(a)]." ) shouldBe "no"
+		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"
+		query( db, "A =.. [f, g(b), 1]." ) shouldBe "A = f(g(b), 1)"
+ 		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
 		
 	}
 	

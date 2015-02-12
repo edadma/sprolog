@@ -163,43 +163,65 @@ class WAM
 		}
 	}
 	
-	def write( term: AST, a: Addr ): Addr =
+	def write( term: AST ): Cell =
 	{
+		def writeseq( cells: Seq[Cell] ) =
+		{
+		val start = h
+		
+			for (c <- cells)
+			{
+				put( h, c )
+				h += 1
+			}
+			
+			start
+		}
+		
 		term match
 		{
-			case AtomAST( atom, _ ) =>
-				put( a, ConCell(atom) )
-				a + 1
-			case NumberAST( n, _ ) =>
-				put( a, ConCell(n) )
-				a + 1
-			case StringAST( s, _ ) =>
-				put( a, ConCell(s) )
-				a + 1
-			case ConstantAST( c, _ ) =>
-				put( a, ConCell(c) )
-				a + 1
-			case StructureAST( DOT, Seq(l, r), _ ) =>
-				put( a, LisCell(a + 1) )
-				write( r, write(l, a + 2) )
-			case StructureAST( f, args, _ ) =>
-			a
-			/*	this is all wrong
-			
-				def writearg( ind: Int, a: Addr  ): Addr =
-				{
-					if (ind == args.length)
-						a
-					else
-						writearg( ind + 1, write(args(ind), a) )
-				}
-				
-				put( a, PtrCell('str, a + 1) )
-				put( a + 1, FunCell(f, args.length) )
-				writearg( 0, a + 2 )
-				*/
+			case AtomAST( atom, _ ) => ConCell( atom )
+			case NumberAST( n, _ ) => ConCell( n )
+			case StringAST( s, _ ) => ConCell( s )
+			case ConstantAST( c, _ ) => ConCell( c )
+			case StructureAST( DOT, Seq(l, r), _ ) => LisCell( writeseq(Seq(write(l), write(r))) )
+			case StructureAST( f, args, _ ) => StrCell( writeseq(FunCell(f, args.length) +: (for (a <- args) yield write(a))) )
 		}
 	}
+
+// 	def write( term: AST, a: Addr ): Addr =
+// 	{
+// 		term match
+// 		{
+// 			case AtomAST( atom, _ ) =>
+// 				put( a, ConCell(atom) )
+// 				a + 1
+// 			case NumberAST( n, _ ) =>
+// 				put( a, ConCell(n) )
+// 				a + 1
+// 			case StringAST( s, _ ) =>
+// 				put( a, ConCell(s) )
+// 				a + 1
+// 			case ConstantAST( c, _ ) =>
+// 				put( a, ConCell(c) )
+// 				a + 1
+// 			case StructureAST( DOT, Seq(l, r), _ ) =>
+// 				put( a, LisCell(a + 1) )
+// 				write( r, write(l, a + 2) )
+// 			case StructureAST( f, args, _ ) =>
+// 				def writearg( ind: Int, a: Addr  ): Addr =
+// 				{
+// 					if (ind == args.length)
+// 						a
+// 					else
+// 						writearg( ind + 1, write(args(ind), a) )
+// 				}
+// 				
+// 				put( a, PtrCell('str, a + 1) )
+// 				put( a + 1, FunCell(f, args.length) )
+// 				writearg( 0, a + 2 )
+// 		}
+// 	}
 	
 	def addr( a: Int ) = deref( new Addr(x, a) )
 	
@@ -234,23 +256,6 @@ class WAM
 	def asInteger( t: AST ) = t.asInstanceOf[NumberAST].n.asInstanceOf[Int]
 
 	def asSymbol( t: AST ) = t.asInstanceOf[AtomAST].atom
-	
-	def putStructure( f: Symbol, args: Seq[Addr] ) =
-	{
-	val s = h
-	
-		put( h, StrCell(h + 1) )
-		put( h + 1, FunCell(f, args.length) )
-		h += 2
-		
-		for (a <- args)
-		{
-			put( h, RefCell(a) )
-			h += 1
-		}
-		
-		s
-	}
 	
 	def structureArg( a: Address, n: Int ) = deref( a ).read match {case StrCell( s: Addr ) => s + n}
 	

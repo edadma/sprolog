@@ -116,8 +116,18 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 		else if (variable( term ) && atom( name ) && isInteger( arity ) && asInteger( arity ) > 0)
 		{
 		val _arity = asInteger( arity )
-					
-			unify( putStructure(asSymbol(name), for (i <- 1 to _arity) yield h + 1 + i), addr(1) )
+		val start = h
+		
+			put( h, FunCell(asSymbol(name), _arity) )
+			h += 1
+			
+			for (_ <- 1 to _arity)
+			{
+				put( h, RefCell(h) )
+				h += 1
+			}
+			
+			unify( StrCell(start), addr(1) )
 		}
 		else
 			false
@@ -166,12 +176,7 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 						atomic( c ) && unify( terma, ConCell(constant(c)) )
 					case f :: args =>
 						if (atom( f ))
-						{
-						val a = h
-						
-							h = write( StructureAST(asAtom(f).atom, args.toIndexedSeq), h )
-							unify( a, terma )
-						}
+							unify( write(StructureAST(asAtom(f).atom, args.toIndexedSeq)), terma )
 						else
 							false
 				}
@@ -179,19 +184,20 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 				sys.error( "expected list" )
 		}
 		else
-		{
-		val term = read( terma )
-		val list = addr( 2 )
-		
-			if (atomic( term ))
-				unify( terma, ConCell(constant(term)) )
-			else
-				term match
-				{
-					case StructureAST( f, args, _ ) =>
-						false
-				}
-		}
+			false
+// 		{
+// 		val term = read( terma )
+// 		val list = addr( 2 )
+// 		
+// 			if (atomic( term ))
+// 				unify( terma,  )
+// 			else
+// 				term match
+// 				{
+// 					case StructureAST( f, args, _ ) =>
+// 						false
+// 				}
+// 		}
 	}
 	
 	define( "write", 1 )
