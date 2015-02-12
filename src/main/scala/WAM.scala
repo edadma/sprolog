@@ -305,6 +305,7 @@ class WAM
 		{
 			h = bstack.h
 			heap.remove( h.ind, heap.size - h.ind )
+			callcode.remove( bstack.callcode, callcode.size - bstack.callcode )
 		}
 		
 		if (trace)
@@ -433,7 +434,7 @@ class WAM
 				else
 					regs(1) = estack.perm
 			case TryMeElseInstruction( t ) =>
-				bstack = new Choice( bstack, x, argc, estack, cp, p + t.offset, trail.size, h )
+				bstack = new Choice( bstack, x, argc, estack, cp, p + t.offset, trail.size, h, callcode.size )
 				hb = h
 			case RetryMeElseInstruction( t ) =>
 				bstack.restore
@@ -804,7 +805,7 @@ class Frame( val prev: Frame, val cp: Int, n: Int, val b0: Choice )
 	val perm = new Store( "Y", n )
 }
 
-class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Int, val h: Addr )
+class Choice( val prev: Choice, regs: Store, n: Int, val estack: Frame, val cp: Int, var bp: Int, val tr: Int, val h: Addr, val callcode: Int )
 {
 	val argregs = regs.take( n + 1 ).toVector
 	

@@ -11,8 +11,9 @@ class Puzzles extends FreeSpec with PropertyChecks with Matchers
 	"zebra" in
 	{
 	val p = program( """		
-		next( A, B, L ):- sublist( [A, B], L ).
-		next( A, B, L ):- sublist( [B, A], L ).
+		next( A, B, L ) :- sublist( [A, B], L ).
+		next( A, B, L ) :- sublist( [B, A], L ).
+%		next( A, B, L ) :- sublist( [A, B], L ) ; sublist( [B, A], L ).
 
 		zebra( Zebra, Water ) :-
 			length( L, 5 ), !, 												%  1
@@ -24,7 +25,7 @@ class Puzzles extends FreeSpec with PropertyChecks with Matchers
 			member( [_, _, snails, _, old_gold] , L ),						%  7
 			member( [yellow, _, _, _, kool] , L ),							%  8
 			L = [_, _, [_, _, _, milk, _] , _, _],							%  9
-			L = [ [_, norwegian, _, _, _]|_],								% 10
+			L = [[_, norwegian, _, _, _]|_],								% 10
 			next( [_, _, _, _, chesterfields], [_, _, fox, _, _], L ),		% 11
 			next( [_, _, _, _, kool], [_, _, horse, _, _], L ),				% 12
 			member( [_, _, _, orange, lucky_strike], L ),					% 13
