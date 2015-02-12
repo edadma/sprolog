@@ -11,14 +11,6 @@ class Puzzles extends FreeSpec with PropertyChecks with Matchers
 	"zebra" in
 	{
 	val p = program( """		
-		sublist([], L).
-		
-		sublist([H|T], [H|U] ) :- initialsublist(T,U). % 2
-		initialsublist([], L). % 3
-		initialsublist([H|T],[H|U] ) :- initialsublist(T,U). 
-
-		sublist(S, [H|U] ) :- sublist(S,U).
-
 		next(A,B,L):- sublist([A,B],L).
 		next(A,B,L):- sublist([B,A],L).
 

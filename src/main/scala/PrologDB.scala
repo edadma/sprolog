@@ -21,6 +21,13 @@ class PrologDB extends Database
 		repeat.
 		repeat :- repeat.
 		
+		sublist( [], L ).
+		sublist( [H|T], [H|U] ) :- sublist_( T, U ).
+		sublist( S, [H|U] ) :- sublist( S, U ).
+
+		sublist_( [], L ).
+		sublist_( [H|T], [H|U] ) :- sublist_( T, U ). 
+
 		member( X, [X|_] ).
 		member( X, [_|T] ) :- member( X, T ).
 		

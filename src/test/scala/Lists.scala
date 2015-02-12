@@ -74,6 +74,16 @@ class Lists extends FreeSpec with PropertyChecks with Matchers
 				|P = [c, b, a]
 				""".stripMargin.trim
 	}
+
+	"sublist" in
+	{
+		query( db, "sublist( [b, c], [a, b, c, d] )." ) shouldBe "yes"
+		query( db, "sublist( [c, b], [a, b, c, d] )." ) shouldBe "no"
+		query( db, "sublist( [b, A], [a, b, c, b, d] )." ) shouldBe
+			"""	|A = c
+				|A = d
+				""".stripMargin.trim
+	}
 	
 	"reverse" in
 	{
