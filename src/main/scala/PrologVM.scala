@@ -184,20 +184,19 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 				sys.error( "expected list" )
 		}
 		else
-			false
-// 		{
-// 		val term = read( terma )
-// 		val list = addr( 2 )
-// 		
-// 			if (atomic( term ))
-// 				unify( terma,  )
-// 			else
-// 				term match
-// 				{
-// 					case StructureAST( f, args, _ ) =>
-// 						false
-// 				}
-// 		}
+		{
+		val term = read( terma )
+		val list = addr( 2 )
+		
+			if (atomic( term ))
+				unify( write(fromList(List(term))), list )
+			else
+			{
+			val s = term.asInstanceOf[StructureAST]
+			
+				unify( write(fromList(AtomAST(s.f) +: s.args.toList)), list )
+			}
+		}
 	}
 	
 	define( "write", 1 )

@@ -55,7 +55,7 @@ package object sprolog
 		a match
 		{
 			case AtomAST( NIL, _ ) => true
-			case StructureAST( DOT, IndexedSeq(head, tail), _ ) if isList( tail ) => true
+			case StructureAST( DOT, Seq(head, tail), _ ) if isList( tail ) => true
 			case _ => false
 		}
 		
@@ -63,7 +63,15 @@ package object sprolog
 		l match
 		{
 			case AtomAST( NIL, _ ) => Nil
-			case StructureAST( DOT, IndexedSeq(head, tail), _ ) => head :: toList( tail )
+			case StructureAST( DOT, Seq(head, tail), _ ) => head :: toList( tail )
+		}
+	
+	def fromList( l: List[AST] ): AST =
+		l match
+		{
+			case Nil => AtomAST( NIL )
+			case head :: tail =>
+				StructureAST( DOT, IndexedSeq(head, fromList(tail)) )
 		}
 	
 	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}

@@ -63,8 +63,12 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		query( db, "A =.. [f(a)]." ) shouldBe "no"
 		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"
 		query( db, "A =.. [f, g(b), 1]." ) shouldBe "A = f(g(b), 1)"
- 		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
-		
+ 		query( db, "a =.. [a]." ) shouldBe "yes"
+		query( db, "1.5 =.. [1.5]." ) shouldBe "yes"
+		query( db, "a =.. A." ) shouldBe "A = [a]"
+		query( db, "foo(a, b) =.. [foo, a, b]." ) shouldBe "yes"
+		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
+		query( db, "foo(a, b) =.. [A|B]." ) shouldBe "A = foo, B = [a, b]"
 	}
 	
 	"term comparison" in
