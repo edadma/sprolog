@@ -14,7 +14,7 @@ class WAM
 	protected val heap = new Store( "H", 10000 )
 	protected val x = new Store( "X", 100 )
 	protected val pdl = new ArrayStack[Address]
-	protected val trail = new ArrayStack[Address]
+	protected val trail = new ArrayStack[Addr]
 	protected var estack: Frame = null
 	protected var bstack: Choice = null
 	protected var b0: Choice = null
@@ -43,7 +43,7 @@ class WAM
 			
 			def unwind( size: Int ) = wam.unwind( size )
 			
-			def trail( a: Address ) = wam.trail( a )
+			def trail( a: Addr ) = wam.trail( a )
 			
 			def bind( a1: Address, a2: Address ) = wam.bind( a1, a2 )
 			
@@ -128,7 +128,7 @@ class WAM
 	def unbound( a: Address ) =
 		a.read match
 		{
-			case PtrCell('ref, ptr ) if ptr == a => true
+			case RefCell( ptr ) if ptr == a => true
 			case _ => false
 		}
 	
@@ -137,7 +137,7 @@ class WAM
 	def deref( a: Address ): Address =
 		a.read match
 		{
-			case PtrCell( 'ref, v ) if v != a => deref( v )
+			case RefCell( v ) if v != a => deref( v )
 			case _ => a
 		}
 	
@@ -145,8 +145,8 @@ class WAM
 	{
 		deref( a ).read match
 		{
-			case PtrCell( 'ref, a: Addr ) => a
-			case PtrCell( 'str, p: Addr ) =>
+			case RefCell( a: Addr ) => a
+			case StrCell( p: Addr ) =>
 				val FunCell( f, n ) = p.read
 				
 				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
@@ -160,6 +160,44 @@ class WAM
 					case s: String => StringAST( s )
 					case _ => ConstantAST( c )
 				}
+		}
+	}
+	
+	def write( term: AST, a: Addr ): Addr =
+	{
+		term match
+		{
+			case AtomAST( atom, _ ) =>
+				put( a, ConCell(atom) )
+				a + 1
+			case NumberAST( n, _ ) =>
+				put( a, ConCell(n) )
+				a + 1
+			case StringAST( s, _ ) =>
+				put( a, ConCell(s) )
+				a + 1
+			case ConstantAST( c, _ ) =>
+				put( a, ConCell(c) )
+				a + 1
+			case StructureAST( DOT, Seq(l, r), _ ) =>
+				put( a, LisCell(a + 1) )
+				write( r, write(l, a + 2) )
+			case StructureAST( f, args, _ ) =>
+			a
+			/*	this is all wrong
+			
+				def writearg( ind: Int, a: Addr  ): Addr =
+				{
+					if (ind == args.length)
+						a
+					else
+						writearg( ind + 1, write(args(ind), a) )
+				}
+				
+				put( a, PtrCell('str, a + 1) )
+				put( a + 1, FunCell(f, args.length) )
+				writearg( 0, a + 2 )
+				*/
 		}
 	}
 	
@@ -201,25 +239,25 @@ class WAM
 	{
 	val s = h
 	
-		put( h, str(h + 1) )
+		put( h, StrCell(h + 1) )
 		put( h + 1, FunCell(f, args.length) )
 		h += 2
 		
 		for (a <- args)
 		{
-			put( h, ref(a) )
+			put( h, RefCell(a) )
 			h += 1
 		}
 		
 		s
 	}
 	
-	def structureArg( a: Address, n: Int ) = deref( a ).read match {case PtrCell( 'str, s: Addr ) => s + n}
+	def structureArg( a: Address, n: Int ) = deref( a ).read match {case StrCell( s: Addr ) => s + n}
 	
 	def isCompound( a: Address ) =
 		deref( a ).read match
 		{
-			case PtrCell( 'str, _ ) => true
+			case StrCell( _ ) => true
 			case _ => false
 		}
 		
@@ -277,15 +315,15 @@ class WAM
 			case PutStructureInstruction( f, i ) =>
 				// optimization for section 5.1 of wambook
 				put( h, f )
-				put( x, i, str(h) )
+				put( x, i, StrCell(h) )
 				h += 1
-// 				put( h, str(h + 1) )
+// 				put( h, StrCell(h + 1) )
 // 				put( h + 1, f )
 // 				put( x, i, h.read )
 // 				h += 2
 			case SetVariableInstruction( v, b, i ) =>
 				binding( v, b, i, h )
-				put( h, ref(h) )
+				put( h, RefCell(h) )
 				put( regs(b), i, h.read )
 				h += 1
 			case SetValueInstruction( b, i ) =>
@@ -296,8 +334,8 @@ class WAM
 				
 				addr.read match
 				{
-					case PtrCell( 'ref, _ ) =>
-						put( h, str(h + 1) )
+					case RefCell( _ ) =>
+						put( h, StrCell(h + 1) )
 						put( h + 1, f )
 						
 //						if (addr != h)
@@ -305,7 +343,7 @@ class WAM
 							
 						h += 2
 						mode = WriteMode
-					case PtrCell( 'str, a: Addr ) =>
+					case StrCell( a: Addr ) =>
 						if (a.read == f)
 						{
 							s = a + 1
@@ -323,7 +361,7 @@ class WAM
 						put( regs(b), i, s.read )							
 						s += 1
 					case WriteMode =>
-						put( h, ref(h) )
+						put( h, RefCell(h) )
 						put( regs(b), i, h.read )
 						h += 1
 				}
@@ -345,7 +383,7 @@ class WAM
 //				s += 1
 			case PutVariableInstruction( v, b, n, i ) =>
 				binding( v, b, n, h )
-				put( h, ref(h) )
+				put( h, RefCell(h) )
 				put( regs(b), n, h.read )
 				put( x, i, h.read )
 				h += 1
@@ -417,9 +455,9 @@ class WAM
 				
 				addr.read match
 				{
-					case PtrCell( 'ref, _ ) =>
+					case RefCell( _ ) =>
 						addr write ConCell( c )
-						trail( addr )
+						trail( addr.asInstanceOf[Addr] )
 					case ConCell( const ) =>
 						if (const != c)
 							backtrack
@@ -435,9 +473,9 @@ class WAM
 						
 						addr.read match
 						{
-							case PtrCell( 'ref, _ ) =>
+							case RefCell( _ ) =>
 								addr write ConCell( c )
-								trail( addr )
+								trail( addr.asInstanceOf[Addr] )
 							case ConCell( const ) =>
 								if (const != c)
 									backtrack
@@ -457,7 +495,7 @@ class WAM
 				
 				addr.read match
 				{
-					case PtrCell( 'ref, _ ) =>
+					case RefCell( _ ) =>
 						put( h, LisCell(h + 1) )
 						bind( addr, h )
 						h += 1
@@ -470,7 +508,7 @@ class WAM
 			case SetVoidInstruction( n ) =>
 				for (i <- 0 until n)
 				{
-					put( h, ref(h) )
+					put( h, RefCell(h) )
 					h += 1
 				}
 			case UnifyVoidInstruction( n ) =>
@@ -480,18 +518,18 @@ class WAM
 					case WriteMode =>
 						for (i <- 0 until n)
 						{
-							put( h, ref(h) )
+							put( h, RefCell(h) )
 							h += 1
 						}
 				}
 			case PutVoidInstruction( i ) =>	// not sure about this; this is to handle the rare case of _ in goal argument position
-				put( h, ref(h) )
+				put( h, RefCell(h) )
 				put( x, i, h.read )
 				h += 1
 			case PutRefInstruction( a, i ) =>		// not sure about this; this is to handle variable in runtime compiled goal argument position
-				put( x, i, ref(a) )
+				put( x, i, RefCell(a) )
 			case SetRefInstruction( a ) =>
-				put( h, ref(a) )
+				put( h, RefCell(a) )
 				h += 1
 			case NeckCutInstruction =>
 				if (bstack ne b0)
@@ -530,10 +568,6 @@ class WAM
 		a
 	}
 	
-	protected def ref( a: Address ) = PtrCell( 'ref, a )
-	
-	protected def str( a: Addr ) = PtrCell( 'str, a )
-	
 	protected def backtrack
 	{
 		if (bstack eq null)
@@ -551,11 +585,11 @@ class WAM
 		{
 		val a = trail.pop
 		
-			a write ref( a )
+			a write RefCell( a )
 		}
 	}
 	
-	protected def trail( a: Address )
+	protected def trail( a: Addr )
 	{
 		trail push a
 	}
@@ -565,12 +599,12 @@ class WAM
 		if (unbound( a1 ))
 		{
 			put( a1, a2.read )
-			trail( a1 )
+			trail( a1.asInstanceOf[Addr] )
 		}
 		else if (unbound( a2 ))
 		{
 			put( a2, a1.read )
-			trail( a2 )
+			trail( a2.asInstanceOf[Addr] )
 		}
 		else
 		{
@@ -594,9 +628,9 @@ class WAM
 			if (d1 != d2)
 				(d1.read, d2.read) match
 				{
-					case (PtrCell( 'ref, _ ), _)|(_, PtrCell( 'ref, _ )) => bind( d1, d2 )
+					case (RefCell( _ ), _)|(_, RefCell( _ )) => bind( d1, d2 )
 					case (ConCell( c1 ), ConCell( c2 )) => matches = c1 == c2 && c1.getClass == c2.getClass		// in Prolog 1 \= 1.0
-					case (PtrCell( 'str, v1: Addr ), PtrCell( 'str, v2: Addr )) =>
+					case (StrCell( v1: Addr ), StrCell( v2: Addr )) =>
 						val f1@FunCell( _, n ) = v1.read
 						val f2 = v2.read
 					
@@ -672,6 +706,8 @@ trait Address
 	def read: Cell
 
 	def write( c: Cell )
+	
+	def +( inc: Int ): Addr
 }
 
 class Addr( val store: Store, val ind: Int ) extends AST with Address with Ordered[Addr]
@@ -703,15 +739,22 @@ class Addr( val store: Store, val ind: Int ) extends AST with Address with Order
 	override def toString = store.name + ind
 }
 
-trait Cell
-case class PtrCell( typ: Symbol, k: Address ) extends Cell
-case class FunCell( f: Symbol, n: Int ) extends Cell
-case class ConCell( c: Any ) extends Cell with Address
-	{
+trait Cell extends Address
+{
 	def read = this
 
-	def write( c: Cell ) = sys.error( "ConCell is read only" )
+	def write( c: Cell ) = sys.error( "a Cell is read only" )
+	
+	def +( inc: Int ): Addr = sys.error( "a Cell is not a store address" )
+}
+
+case class RefCell( k: Addr ) extends Cell
+	{
+	override def read = sys.error( "RefCell can only exist in a store" )
 	}
+case class StrCell( k: Addr ) extends Cell
+case class FunCell( f: Symbol, n: Int ) extends Cell
+case class ConCell( c: Any ) extends Cell
 case class LisCell( a: Addr ) extends Cell
 
 trait Mode
@@ -792,7 +835,7 @@ abstract class WAMInterface( val wam: WAM )
 	
 	def unwind( size: Int )
 	
-	def trail( a: Address )
+	def trail( a: Addr )
 	
 	def bind( a1: Address, a2: Address )
 	

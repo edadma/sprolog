@@ -151,28 +151,48 @@ class PrologVM( evaluator: Evaluator = new Evaluator ) extends WAM
 	
 	define( "true", 0 ) (true)
 	
-// 	define( "=..", 2 )
-// 	{
-// 	val term = addr( 1 )
-// 	
-// 		if (unbound( term ))
-// 		{
-// 		val list argInstantiated( 2 )
-// 	
-// 			if (isList( list ))
-// 				toList( list ) match
-// 				{
-// 					case List( c ) => unify( term, c )
-// 					case f :: args =>
-// 						if (atom( f ))
-// 							putStructure( asAtom(f)
-// 				}
-// 			else
-// 				sys.error( "expected list" )
-// 		}
-// 		
-// 			
-// 	}
+	define( "=..", 2 )
+	{
+	val terma = addr( 1 )
+	
+		if (unbound( terma ))
+		{
+		val list = argInstantiated( 2 )
+	
+			if (isList( list ))
+				toList( list ) match
+				{
+					case List( c ) =>
+						atomic( c ) && unify( terma, ConCell(constant(c)) )
+					case f :: args =>
+						if (atom( f ))
+						{
+						val a = h
+						
+							h = write( StructureAST(asAtom(f).atom, args.toIndexedSeq), h )
+							unify( a, terma )
+						}
+						else
+							false
+				}
+			else
+				sys.error( "expected list" )
+		}
+		else
+		{
+		val term = read( terma )
+		val list = addr( 2 )
+		
+			if (atomic( term ))
+				unify( terma, ConCell(constant(term)) )
+			else
+				term match
+				{
+					case StructureAST( f, args, _ ) =>
+						false
+				}
+		}
+	}
 	
 	define( "write", 1 )
 	{
