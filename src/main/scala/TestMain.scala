@@ -14,7 +14,7 @@ object TestMain extends App
 //	Prolog.listing( pc.code )
 	v.db = db
 
-  	val q = Prolog.parseQuery( """ a =.. [a] """ )//iterate( [1,2,3], V )
+  	val q = Prolog.parseQuery( """ A = [[1, 2], 3] """ )//iterate( [1,2,3], V )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
