@@ -652,6 +652,9 @@ object Prolog
 				case UnifyConstantInstruction( c )		=> s"unify_constant $c"
 				case SetVoidInstruction( n )				=> s"set_void $n"
 				case UnifyVoidInstruction( n )			=> s"unify_void $n"
+				case PutListInstruction( i )				=> s"put_list $i"
+				case GetListInstruction( i )				=> s"get_list $i"
+				case PutVoidInstruction( i )				=> s"put_void $i"
 				} )
 		}
 	}

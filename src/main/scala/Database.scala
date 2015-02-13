@@ -6,9 +6,11 @@ import collection.mutable.{ArrayBuffer, HashMap}
 class Database
 {
 	private val procmap = new HashMap[Indicator, Procedure]
-	private val program = new ArrayBuffer[Instruction]
+	private [sprolog] val program = new ArrayBuffer[Instruction]
 	
 	private case class Procedure( start: Int, length: Int, clauses: List[Clause] )
+	
+	def code( proc: Indicator ) = procmap.get( proc ) map {case Procedure(start, length, _) => program.slice( start, start + length ).toVector}
 	
 	def address( proc: Indicator ) = procmap.get( proc ) map {case Procedure(start, _, _) => start}
 	
