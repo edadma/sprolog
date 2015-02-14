@@ -65,6 +65,21 @@ package object sprolog
 			case AtomAST( NIL, _ ) => Nil
 			case StructureAST( DOT, Seq(head, tail), _ ) => head :: toList( tail )
 		}
+
+	def isVarList( a: AST ): Boolean =
+		a match
+		{
+			case _: Addr => true
+			case StructureAST( DOT, Seq(head, tail), _ ) if isVarList( tail ) => true
+			case _ => false
+		}
+		
+	def toVarList( l: AST ): List[AST] =
+		l match
+		{
+			case a: Addr => List( a )
+			case StructureAST( DOT, Seq(head, tail), _ ) => head :: toVarList( tail )
+		}
 	
 	def fromList( l: List[AST] ): AST =
 		l match
@@ -72,21 +87,5 @@ package object sprolog
 			case Nil => AtomAST( NIL )
 			case head :: tail =>
 				StructureAST( DOT, IndexedSeq(head, fromList(tail)) )
-		}
-	
-	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}
-		
-	def display( a: AST ): String =
-		a match
-		{
-			case NumberAST( n, _ ) => n.toString
-			case AtomAST( atom, _ ) => atom.name
-			case StringAST( s, _ ) => s
-			case VariableAST( s, _ ) => s.name
-			case _: Addr => a.toString
-			case StructureAST( f, IndexedSeq(), _ ) => f.name
-			case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
-			case StructureAST( f, args, _ ) => f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
-			case ConstantAST( c, _ ) => c.toString
 		}
 }

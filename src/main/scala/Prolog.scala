@@ -46,9 +46,28 @@ object Prolog
 						}),
 						args.map(_.v), functor.start.head.pos )
 		}
-	
-	val db = new PrologDB
 
+	def ops =
+		new OperatorTable
+		{
+			def operators: List[(Int, Symbol, Symbol)] =
+			{
+				Nil
+			}
+			
+			def binary( op: Symbol ): Option[(Int, Symbol)] =
+			{
+				parser.operator( if (op.name.length == 1) op.name.head else op).get( 'infix ) match
+				{
+					case None => None
+					case Some( Operator(_, prec, assoc) ) => Some( (prec, assoc) )
+				}
+			}
+			
+			def unary( op: Symbol ): Option[(Int, Symbol)] =
+				None
+		}
+		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
 	
 	def parseQuery( s: String ) =
@@ -666,4 +685,13 @@ object Prolog
 	
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
+}
+
+abstract class OperatorTable
+{
+	def operators: List[(Int, Symbol, Symbol)]
+	
+	def binary( op: Symbol ): Option[(Int, Symbol)]
+	
+	def unary( op: Symbol ): Option[(Int, Symbol)]
 }

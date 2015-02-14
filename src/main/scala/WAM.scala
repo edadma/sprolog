@@ -7,6 +7,7 @@ import collection.immutable.SortedMap
 class WAM
 {
 	var db: Database = _
+	var ops: OperatorTable = _
 	
 	protected val trace = false
 	protected val step = false
@@ -222,6 +223,49 @@ class WAM
 // 				writearg( 0, a + 2 )
 // 		}
 // 	}
+	
+	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}
+	
+	def display( a: AST ): String =
+	{
+		def _display( f: Symbol, args: Seq[AST] ) =
+			f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
+			
+		def _displayPrec( prec: Int, a: AST ): String =
+			a match
+			{
+				case NumberAST( n, _ ) => n.toString
+				case AtomAST( atom, _ ) => atom.name
+				case StringAST( s, _ ) => s
+				case VariableAST( s, _ ) => s.name
+				case _: Addr => a.toString
+				case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
+				case s: StructureAST if isVarList( s ) =>
+					val list = toVarList( s )
+					
+					list.dropRight( 1 ).map( display(_) ).mkString( "[", ", ", "|" ) + display( list.last ) + "]"
+				case StructureAST( f, args, _ ) =>
+					if (args.length == 2)
+					{
+						ops.binary( f ) match
+						{
+							case None => _display( f, args )
+							case Some( (inner_prec, assoc) ) =>
+								val sep = if (f == '+ || f == '- || f.name.head.isLetter) " " else ""
+								
+								((if (inner_prec > prec) "(" else "") + (_displayPrec( inner_prec, args(0) ) + sep +
+									f.name + sep + _displayPrec( inner_prec, args(1) )) +
+									(if (inner_prec > prec) ")" else ""))
+						}
+					}
+					else
+						_display( f, args )
+					
+				case ConstantAST( c, _ ) => c.toString
+			}
+			
+		_displayPrec( 10000, a )
+	}
 	
 	def addr( a: Int ) = deref( new Addr(x, a) )
 	
