@@ -245,16 +245,37 @@ class WAM
 					
 					list.dropRight( 1 ).map( display(_) ).mkString( "[", ", ", "|" ) + display( list.last ) + "]"
 				case StructureAST( f, args, _ ) =>
-					if (args.length == 2)
+					if (args.length == 1)
 					{
-						ops.binary( f ) match
+						ops.operator( f, 'prefix ) match
+						{
+							case None =>
+								ops.operator( f, 'postfix ) match
+								{
+									case None => _display( f, args )
+									case Some( inner_prec ) =>
+										val sep = if (f.name.head.isLetter) " " else ""
+										
+										((if (inner_prec > prec) "(" else "") + _displayPrec( inner_prec, args(0) ) + sep + f.name +
+											(if (inner_prec > prec) ")" else ""))
+								}
+							case Some( inner_prec ) =>
+								val sep = if (f.name.head.isLetter) " " else ""
+								
+								((if (inner_prec > prec) "(" else "") + f.name + sep + _displayPrec( inner_prec, args(0) ) +
+									(if (inner_prec > prec) ")" else ""))
+						}
+					}
+					else if (args.length == 2)
+					{
+						ops.operator( f, 'infix ) match
 						{
 							case None => _display( f, args )
-							case Some( (inner_prec, assoc) ) =>
+							case Some( inner_prec ) =>
 								val sep = if (f == '+ || f == '- || f.name.head.isLetter) " " else ""
 								
-								((if (inner_prec > prec) "(" else "") + (_displayPrec( inner_prec, args(0) ) + sep +
-									f.name + sep + _displayPrec( inner_prec, args(1) )) +
+								((if (inner_prec > prec) "(" else "") + _displayPrec( inner_prec, args(0) ) + sep +
+									f.name + sep + _displayPrec( inner_prec, args(1) ) +
 									(if (inner_prec > prec) ")" else ""))
 						}
 					}

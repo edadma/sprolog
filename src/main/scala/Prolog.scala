@@ -47,6 +47,8 @@ object Prolog
 						args.map(_.v), functor.start.head.pos )
 		}
 
+	def db = new PrologDB
+	
 	def ops =
 		new OperatorTable
 		{
@@ -55,17 +57,18 @@ object Prolog
 				Nil
 			}
 			
-			def binary( op: Symbol ): Option[(Int, Symbol)] =
+			def operator( op: Symbol, fixity: Symbol ): Option[Int] =
 			{
-				parser.operator( if (op.name.length == 1) op.name.head else op).get( 'infix ) match
+				parser.operator( if (op.name.length == 1) op.name.head else op ) match
 				{
 					case None => None
-					case Some( Operator(_, prec, assoc) ) => Some( (prec, assoc) )
+					case Some( m ) => m.get( fixity ) match
+					{
+						case None => None
+						case Some( Operator(_, prec, assoc) ) => Some( prec )
+					}
 				}
 			}
-			
-			def unary( op: Symbol ): Option[(Int, Symbol)] =
-				None
 		}
 		
 	def parseClause( s: String ) = parser.parse( s, 4, '.' )
@@ -534,6 +537,7 @@ object Prolog
 	val vm = new PrologVM
 	
 		vm.db = db
+		vm.ops = ops
 		Console.withOut( new PrintStream(out, true) ) {vm query compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
@@ -545,6 +549,7 @@ object Prolog
 	val vm = new PrologVM
 	
 		vm.db = db
+		vm.ops = ops
 		Console.withOut( new PrintStream(out, true) ) {vm queryOnce compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
@@ -691,7 +696,5 @@ abstract class OperatorTable
 {
 	def operators: List[(Int, Symbol, Symbol)]
 	
-	def binary( op: Symbol ): Option[(Int, Symbol)]
-	
-	def unary( op: Symbol ): Option[(Int, Symbol)]
+	def operator( op: Symbol, fixity: Symbol ): Option[Int]
 }

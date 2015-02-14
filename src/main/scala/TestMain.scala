@@ -15,7 +15,7 @@ object TestMain extends App
 	v.db = db
 	v.ops = Prolog.ops
 	
-  	val q = Prolog.parseQuery( """ L = 1+2*3 """ )//iterate( [1,2,3], V )
+  	val q = Prolog.parseQuery( """ L = -(a+2)*--b """ )//iterate( [1,2,3], V )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
