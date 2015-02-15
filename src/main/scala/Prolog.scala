@@ -264,6 +264,9 @@ object Prolog
 				case t: StructureAST =>
 					var nextreg = t.arity + 1
 				
+					for ((b, r) <- varmap.valuesIterator; if b == 0)
+						nextreg = nextreg max (r + 1)
+						
 					for (arg <- 1 to t.arity)
 					{
 						t.args(arg - 1) match
