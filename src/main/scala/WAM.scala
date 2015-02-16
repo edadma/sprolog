@@ -30,7 +30,7 @@ class WAM
 	protected val vars = new ArrayBuffer[(Symbol, Addr)]
 	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected var argc: Int = _
-	protected val callables = new HashMap[Indicator, WAMInterface => Boolean]
+	protected val callables = new HashMap[Indicator, Callable]
 	protected val interface =
 		new WAMInterface( this )
 		{
@@ -56,7 +56,7 @@ class WAM
 		define( name, arity, _ => c )
 	}
 	
-	def define( name: String, arity: Int, c: WAMInterface => Boolean )
+	def define( name: String, arity: Int, c: Callable )
 	{
 	val ind = Indicator( Symbol(name), arity )
 	
@@ -465,23 +465,37 @@ class WAM
 			case GetValueInstruction( b, n, i ) =>
 				if (!unify( new Addr(regs(b), n), new Addr(x, i) ))
 					backtrack
-			case CallInstruction( f ) =>
-				db.address( f ) match
+			case c@CallInstruction( f ) =>
+				if (c.timestamp < db.timestamp || (c.wam ne this))
 				{
-					case None =>
-						callables.get( f ) match
-						{
-							case None => backtrack
-							case Some( callable ) =>
-								if (!callable( interface ))
-									backtrack
-						}
-					case Some( loc ) =>
-						cp = p	//p is incremented prior to instruction execution
-						argc = f.arity
-						b0 = bstack
-						p = loc
+					db.address( f ) match
+					{
+						case None =>
+							callables.get( f ) match
+							{
+								case None => backtrack
+								case Some( callable ) =>
+									c.callable = callable
+									c.location = -1
+									c.wam = this
+									c.timestamp = db.timestamp	// so that a built-in can be redefined
+							}
+						case Some( location ) =>
+							c.location = location
+							c.wam = this
+							c.timestamp = db.timestamp
+					}
 				}
+				
+				if (c.location > -1)
+				{
+					cp = p	//p is incremented prior to instruction execution
+					argc = f.arity
+					b0 = bstack
+					p = c.location
+				}
+				else if (!c.callable( interface ))
+					backtrack
 			case ProceedInstruction() =>
 				p = cp
 			case CallAllocateInstruction( n ) =>
@@ -750,6 +764,12 @@ case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class CallInstruction( f: Indicator ) extends Instruction
+	{
+	var location = -1
+	var timestamp = 0L
+	var wam: WAM = _
+	var callable: Callable = _
+	}
 case class ProceedInstruction() extends Instruction	// a proceed instruction call have a label
 case class CallAllocateInstruction( n: Int ) extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction

@@ -6,6 +6,8 @@ package object sprolog
 	val DOT = Symbol( "." )
 	val NIL = Symbol( "[]" )
 	
+	type Callable = WAMInterface => Boolean
+	
 	case class Indicator( functor: Symbol, arity: Int ) extends Ordered[Indicator]
 	{
 		def compare( that: Indicator ) =

@@ -6,9 +6,12 @@ import collection.mutable.{ArrayBuffer, HashMap}
 class Database
 {
 	private val procmap = new HashMap[Indicator, Procedure]
-	private [sprolog] val program = new ArrayBuffer[Instruction]
+	private val program = new ArrayBuffer[Instruction]
+	private var changed = 0L
 	
 	private case class Procedure( start: Int, length: Int, clauses: List[Clause] )
+	
+	def timestamp = changed
 	
 	def code( proc: Indicator ) = procmap.get( proc ) map {case Procedure(start, length, _) => program.slice( start, start + length ).toVector}
 	
@@ -25,6 +28,7 @@ class Database
 		procmap(proc) = Procedure( program.size, code.length, clauses )
 		
 		program ++= code
+		changed = compat.Platform.currentTime
 	}
 }
 
