@@ -20,9 +20,9 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		""" )
 			
 		// call 60
-		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
-		query( p, "call(!) ; true." ) shouldBe "yes"
-		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
+ 		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
+ 		query( p, "call(!) ; true." ) shouldBe "yes"
+ 		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
 			"""	|X = 1
 				|X = 2
 				""".stripMargin.trim			
@@ -44,16 +44,16 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 	"term creation and decomposition" in
 	{
 		// arg 39
-		query( db, "arg(2, foo(a, b, c), X)." ) shouldBe "X = b"
+ 		query( db, "arg(2, foo(a, b, c), X)." ) shouldBe "X = b"
 		query( db, "arg(2, foo(a, f(X, b), c), f(a, Y))." ) shouldBe "X = a, Y = b"
 		query( db, "arg(1, foo(a, b, c), b)." ) shouldBe "no"
 		
 		// functor 93
-		query( db, "functor( asdf, A, B )." ) shouldBe "A = asdf, B = 0"
-		query( db, "functor( 1.5, A, B )." ) shouldBe "A = 1.5, B = 0"
-		query( db, "functor( A, asdf, 0 )." ) shouldBe "A = asdf"
-		query( db, "functor( A, 1.5, 0 )." ) shouldBe "A = 1.5"
-		query( db, "functor( foo(aa, X), Y, Z )." ) should fullyMatch regex """X = H\d+, Y = foo, Z = 2"""
+ 		query( db, "functor( asdf, A, B )." ) shouldBe "A = asdf, B = 0"
+ 		query( db, "functor( 1.5, A, B )." ) shouldBe "A = 1.5, B = 0"
+ 		query( db, "functor( A, asdf, 0 )." ) shouldBe "A = asdf"
+ 		query( db, "functor( A, 1.5, 0 )." ) shouldBe "A = 1.5"
+ 		query( db, "functor( foo(aa, X), Y, Z )." ) should fullyMatch regex """X = H\d+, Y = foo, Z = 2"""
 		query( db, "functor( X, foo, 3 )." ) should fullyMatch regex """X = foo\(H\d+, H\d+, H\d+\)"""
 		query( db, "functor( F, 1.5, 1 )." ) shouldBe "no"
 		

@@ -7,30 +7,30 @@ import collection.immutable.SortedMap
 class WAM
 {
 	var db: Database = _
+	var predicates: PredicateMap = _
 	var ops: OperatorTable = _
 	
 	protected val trace = false
 	protected val step = false
-	protected val QUERY = 1000000000	
-	protected val heap = new Store( "H", 10000 )
-	protected val x = new Store( "X", 100 )
+	val QUERY = 1000000000
+	protected [sprolog] val heap = new Store( "H", 10000 )
+	protected [sprolog] val x = new Store( "X", 100 )
 	protected val pdl = new ArrayStack[Address]
-	protected val trail = new ArrayStack[Addr]
-	protected var estack: Frame = null
-	protected var bstack: Choice = null
-	protected var b0: Choice = null
-	protected var h: Addr = _
-	protected var hb: Addr = _
+	protected [sprolog] val trail = new ArrayStack[Addr]
+	protected [sprolog] var estack: Frame = null
+	protected [sprolog] var bstack: Choice = null
+	protected [sprolog] var b0: Choice = null
+	protected [sprolog] var h: Addr = _
+	protected [sprolog] var hb: Addr = _
 	protected var s: Addr = _
 	protected var fail: Boolean = _
 	protected var mode: Mode = _
-	protected var callcode: ArrayBuffer[Instruction] = _
-	protected var p: Int = _
-	protected var cp : Int = _
-	protected val vars = new ArrayBuffer[(Symbol, Addr)]
-	protected val regs = Array[Store]( x, null )	// second element points to current environment variable store
-	protected var argc: Int = _
-	protected val callables = new HashMap[Indicator, Callable]
+	protected [sprolog] var callcode: ArrayBuffer[Instruction] = _
+	protected [sprolog] var p: Int = _
+	protected [sprolog] var cp : Int = _
+	protected [sprolog] val vars = new ArrayBuffer[(Symbol, Addr)]
+	protected [sprolog] val regs = Array[Store]( x, null )	// second element points to current environment variable store
+	protected [sprolog] var argc: Int = _
 	protected val interface =
 		new WAMInterface( this )
 		{
@@ -39,6 +39,8 @@ class WAM
 			val estack = wam.estack
 			
 			val x = wam.x
+			
+			def put( a: Address, c: Cell ) = wam.put( a, c )
 			
 			def backtrack = wam.backtrack
 			
@@ -50,22 +52,7 @@ class WAM
 			
 			def unify( a1: Address, a2: Address ) = wam.unify( a1, a2 )
 		}
-	
-	def define( name: String, arity: Int )( c: => Boolean )
-	{
-		define( name, arity, _ => c )
-	}
-	
-	def define( name: String, arity: Int, c: Callable )
-	{
-	val ind = Indicator( Symbol(name), arity )
-	
-		if (callables contains ind)
-			sys.error( s"callable $ind already added" )
-		else
-			callables(ind) = c
-	}
-	
+		
 	def query( qc: ArrayBuffer[Instruction] )
 	{
 		if (execute( qc ))
@@ -331,7 +318,7 @@ class WAM
 			case _ => false
 		}
 		
-	protected def run =
+	protected [sprolog] def run =
 	{
 		while (p > -1 && !fail)
 		{
@@ -345,12 +332,12 @@ class WAM
 		fail
 	}
 	
-	protected def put( a: Address, c: Cell )
+	protected [sprolog] def put( a: Address, c: Cell )
 	{
 		put( a.asInstanceOf[Addr].store, a.asInstanceOf[Addr].ind, c )
 	}
 	
-	protected def put( r: Store, index: Int, c: Cell )
+	protected [sprolog] def put( r: Store, index: Int, c: Cell )
 	{
 		if (r.size <= index)
 			r ++= Seq.fill[Cell]( index - r.size + 1 )( null )
@@ -358,13 +345,13 @@ class WAM
 		r(index) = c
 	}
 	
-	protected def binding( v: Symbol, b: Int, n: Int, a: Addr )
+	protected [sprolog] def binding( v: Symbol, b: Int, n: Int, a: Addr )
 	{
 		if (v ne null)
 			vars += (v -> a)
 	}
 	
-	protected def perform( inst: Instruction )
+	protected [sprolog] def perform( inst: Instruction )
 	{
 		def trim
 		{
@@ -466,26 +453,7 @@ class WAM
 				if (!unify( new Addr(regs(b), n), new Addr(x, i) ))
 					backtrack
 			case c@CallInstruction( f ) =>
-				if (c.timestamp < db.timestamp || (c.wam ne this))
-				{
-					db.address( f ) match
-					{
-						case None =>
-							callables.get( f ) match
-							{
-								case None => backtrack
-								case Some( callable ) =>
-									c.callable = callable
-									c.location = -1
-									c.wam = this
-									c.timestamp = db.timestamp	// so that a built-in can be redefined
-							}
-						case Some( location ) =>
-							c.location = location
-							c.wam = this
-							c.timestamp = db.timestamp
-					}
-				}
+				c.update( db, predicates, backtrack _ )
 				
 				if (c.location > -1)
 				{
@@ -494,7 +462,7 @@ class WAM
 					b0 = bstack
 					p = c.location
 				}
-				else if (!c.callable( interface ))
+				else if (!c.predicate( interface ))
 					backtrack
 			case ProceedInstruction() =>
 				p = cp
@@ -549,7 +517,8 @@ class WAM
 					case _ => backtrack
 				}
 			case SetConstantInstruction( c ) =>
-				setConstant( c )
+				put( h, ConCell(c) )
+				h += 1
 			case UnifyConstantInstruction( c ) =>
 				mode match
 				{
@@ -629,6 +598,8 @@ class WAM
 				{
 					bstack = estack.b0
 				}
+			case c@ExecuteInstruction( f ) =>
+				c.update( db, predicates, backtrack _ )
 		}
 		
 		if (trace)
@@ -644,16 +615,16 @@ class WAM
 		}
 	}
 	
-	protected def setConstant( c: Any ) =
-	{
-	val a = h
+// 	protected def setConstant( c: Any ) =
+// 	{
+// 	val a = h
+// 	
+// 		put( h, ConCell(c) )
+// 		h += 1
+// 		a
+// 	}
 	
-		put( h, ConCell(c) )
-		h += 1
-		a
-	}
-	
-	protected def backtrack
+	protected [sprolog] def backtrack
 	{
 		if (bstack eq null)
 		{
@@ -664,7 +635,7 @@ class WAM
 			p = bstack.bp
 	}
 	
-	protected def unwind( size: Int )
+	protected [sprolog] def unwind( size: Int )
 	{
 		while (trail.size > size)
 		{
@@ -674,12 +645,12 @@ class WAM
 		}
 	}
 	
-	protected def trail( a: Addr )
+	protected [sprolog] def trail( a: Addr )
 	{
 		trail push a
 	}
 
-	protected def bind( a1: Address, a2: Address )
+	protected [sprolog] def bind( a1: Address, a2: Address )
 	{
 		if (unbound( a1 ))
 		{
@@ -697,7 +668,7 @@ class WAM
 		}
 	}
 	
-	protected def unify( a1: Address, a2: Address ) =
+	protected [sprolog] def unify( a1: Address, a2: Address ) =
 	{
 	var matches = true
 	
@@ -753,6 +724,36 @@ abstract class Instruction
 	}
 }
 
+abstract class CallingInstruction extends Instruction
+{
+	val f: Indicator
+	var location = -1
+	var timestamp = 0L
+	var predicate: Predicate = _
+	
+	def update( db: Database, predicates: PredicateMap, backtrack: () => Unit )
+	{
+ 		if (timestamp < db.timestamp)
+		{
+			db.address( f ) match
+			{
+				case None =>
+					predicates.get( f ) match
+					{
+						case None => backtrack()
+						case Some( p ) =>
+							predicate = p
+							location = -1
+							timestamp = db.timestamp	// so that a built-in can be redefined
+					}
+				case Some( l ) =>
+					location = l
+					timestamp = db.timestamp
+			}
+		}
+	}
+}
+
 case class PutStructureInstruction( f: FunCell, i: Int ) extends Instruction
 case class SetVariableInstruction( v: Symbol, b: Int, i: Int ) extends Instruction
 case class SetValueInstruction( b: Int, i: Int ) extends Instruction
@@ -763,13 +764,7 @@ case class PutVariableInstruction( v: Symbol, b: Int, n: Int, i: Int ) extends I
 case class PutValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetVariableInstruction( b: Int, n: Int, i: Int ) extends Instruction
 case class GetValueInstruction( b: Int, n: Int, i: Int ) extends Instruction
-case class CallInstruction( f: Indicator ) extends Instruction
-	{
-	var location = -1
-	var timestamp = 0L
-	var wam: WAM = _
-	var callable: Callable = _
-	}
+case class CallInstruction( f: Indicator ) extends CallingInstruction
 case class ProceedInstruction() extends Instruction	// a proceed instruction call have a label
 case class CallAllocateInstruction( n: Int ) extends Instruction
 case class AllocateInstruction( n: Int ) extends Instruction
@@ -791,6 +786,7 @@ case class SetRefInstruction( a: Addr ) extends Instruction
 case object NeckCutInstruction extends Instruction
 case class GetLevelInstruction( n: Int ) extends Instruction
 case object CutInstruction/*( n: Int )*/ extends Instruction
+case class ExecuteInstruction( f: Indicator ) extends CallingInstruction
 
 trait Address
 {
@@ -921,6 +917,8 @@ abstract class WAMInterface( val wam: WAM )
 	val estack: Frame
 	val bstack: Choice
 	val x: Store
+	
+	def put( a: Address, c: Cell )
 	
 	def backtrack
 	

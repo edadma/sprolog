@@ -47,9 +47,11 @@ object Prolog
 						args.map(_.v), functor.start.head.pos )
 		}
 
-	def db = new PrologDB
+	val db = new PrologDB
 	
-	def ops =
+	val builtins = new PrologBuiltins
+	
+	val ops =
 		new OperatorTable
 		{
 			def operators: List[(Int, Symbol, Symbol)] =
@@ -537,10 +539,11 @@ object Prolog
 	{
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
-	val vm = new PrologVM
+	val vm = new WAM
 	
 		vm.db = db
 		vm.ops = ops
+		vm.predicates = builtins
 		Console.withOut( new PrintStream(out, true) ) {vm query compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
@@ -549,10 +552,11 @@ object Prolog
 	{
 	val buf = new StringBuilder
 	val out = new ByteArrayOutputStream
-	val vm = new PrologVM
+	val vm = new WAM
 	
 		vm.db = db
 		vm.ops = ops
+		vm.predicates = builtins
 		Console.withOut( new PrintStream(out, true) ) {vm queryOnce compileQuery(parseQuery(q))}
 		out.toString.trim
 	}
