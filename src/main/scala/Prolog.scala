@@ -250,7 +250,7 @@ object Prolog
 	{
 	val seen = new HashSet[(Int, Int)] ++ varmap.values
 	val conj = conjunctive( q )
-	val terms = conj		// no neck-cut instruction is emitted so that all cuts can be "tricked" by CallAllocateInstruction inserted by 'call'
+	val terms = conj.iterator		// no neck-cut instruction is emitted so that all cuts can be "tricked" by CallAllocateInstruction inserted by 'call'
 // 		if (conj.head.isInstanceOf[AtomAST] && conj.head.asInstanceOf[AtomAST].atom == '!)
 // 		{
 // 			code += NeckCutInstruction
@@ -367,11 +367,23 @@ object Prolog
 						}
 					}
 					
-					code += CallInstruction( Indicator(t.f, t.arity) )
+					if (terms.hasNext)
+						code += CallInstruction( Indicator(t.f, t.arity) )
+					else
+					{
+						code += DeallocateInstruction
+						code += ExecuteInstruction( Indicator(t.f, t.arity) )
+					}
 				case AtomAST( '!, _ ) =>
 					code += CutInstruction
 				case AtomAST( a, _ ) =>
-					code += CallInstruction( Indicator(a, 0) )
+					if (terms.hasNext)
+						code += CallInstruction( Indicator(a, 0) )
+					else
+					{
+						code += DeallocateInstruction
+						code += ExecuteInstruction( Indicator(a, 0) )
+					}
 			}
 			
 			for ((k, v) <- varmap)
@@ -383,7 +395,7 @@ object Prolog
 					seen -= e
 		}
 
-		code += DeallocateInstruction
+//		code += DeallocateInstruction
 	}
 	
 	def fact( f: AST, code: ArrayBuffer[Instruction], target: Indicator )
@@ -686,6 +698,8 @@ object Prolog
 				case PutListInstruction( i )				=> s"put_list $i"
 				case GetListInstruction( i )				=> s"get_list $i"
 				case PutVoidInstruction( i )				=> s"put_void $i"
+				case ExecuteInstruction( f )				=> s"execute $f"
+				case CutInstruction						=> "cut"
 				} )
 		}
 	}

@@ -20,9 +20,9 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		""" )
 			
 		// call 60
- 		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
- 		query( p, "call(!) ; true." ) shouldBe "yes"
- 		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
+  		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
+  		query( p, "call(!) ; true." ) shouldBe "yes"
+  		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
 			"""	|X = 1
 				|X = 2
 				""".stripMargin.trim			
@@ -32,13 +32,13 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 			"""	|X = bee
 				|X = ant
 				""".stripMargin.trim			
-		query( p, "insect(X), !." ) shouldBe "X = bee"
-		query( p, "(insect(X); animal(Y)), !." ) should fullyMatch regex """X = bee, Y = H\d+"""
-		query( p, "insect(X), !, animal(Y)." ) shouldBe
-			"""	|X = bee, Y = horse
-				|X = bee, Y = cat
-				|X = bee, Y = dog
-				""".stripMargin.trim			
+// 		query( p, "insect(X), !." ) shouldBe "X = bee"
+// 		query( p, "(insect(X); animal(Y)), !." ) should fullyMatch regex """X = bee, Y = H\d+"""
+// 		query( p, "insect(X), !, animal(Y)." ) shouldBe
+// 			"""	|X = bee, Y = horse
+// 				|X = bee, Y = cat
+// 				|X = bee, Y = dog
+// 				""".stripMargin.trim			
 	}
 	
 	"term creation and decomposition" in

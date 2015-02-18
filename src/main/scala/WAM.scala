@@ -326,7 +326,12 @@ class WAM
 		
 			p += 1
 			
-			perform( if (p < QUERY) db.instruction(_p) else callcode(_p - QUERY) )
+			if (p < QUERY)
+				perform( db.instruction(_p) )
+			else if (_p - QUERY < callcode.size)
+				perform( callcode(_p - QUERY) )
+			else
+				p = -1
 		}
 		
 		fail
@@ -473,7 +478,7 @@ class WAM
 				estack = new Frame( estack, cp, n, b0 )
 				regs(1) = estack.perm
 			case DeallocateInstruction =>
-				p = estack.cp
+				cp = estack.cp
 				estack = estack.prev
 				
 				if (estack eq null)
@@ -486,7 +491,12 @@ class WAM
 			case RetryMeElseInstruction( t ) =>
 				bstack.restore
 				estack = bstack.estack
-				regs(1) = estack.perm
+				
+				if (estack eq null)
+					regs(1) = null
+				else
+					regs(1) = estack.perm
+					
 				cp = bstack.cp
 				bstack.bp = p + t.offset
 				unwind( bstack.tr )
@@ -495,7 +505,12 @@ class WAM
 			case TrustMeInstruction() =>
 				bstack.restore
 				estack = bstack.estack
-				regs(1) = estack.perm
+				
+				if (estack eq null)
+					regs(1) = null
+				else
+					regs(1) = estack.perm
+					
 				cp = bstack.cp
 				unwind( bstack.tr )
 				trim
@@ -600,6 +615,14 @@ class WAM
 				}
 			case c@ExecuteInstruction( f ) =>
 				c.update( db, predicates, backtrack _ )
+				
+				if (c.location > -1)
+				{
+					argc = f.arity
+					p = c.location
+				}
+				else if (!c.predicate( interface ))
+					backtrack
 		}
 		
 		if (trace)
