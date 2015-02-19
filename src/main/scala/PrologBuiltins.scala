@@ -44,7 +44,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 	
 		w.wam.arg(1) match
 		{
-			case NumberAST( n, _ ) => n == v && n.getClass == v.getClass
+			case NumberAST( n ) => n == v && n.getClass == v.getClass
 			case a: Addr =>
 				w.bind( a, ConCell(v) )
 				true
@@ -112,7 +112,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 	{ w =>
 		w.wam.arg(1) match
 		{
-			case NumberAST( (_: java.lang.Double|_: BigDecimal), _ ) => true
+			case NumberAST( (_: java.lang.Double|_: BigDecimal) ) => true
 			case _ => false
 		}
 	}
@@ -162,7 +162,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 	{ w =>
 		w.wam.arg(1) match
 		{
-			case NumberAST( (_: java.lang.Integer|_: BigInt), _ ) => true
+			case NumberAST( (_: java.lang.Integer|_: BigInt) ) => true
 			case _ => false
 		}
 	}

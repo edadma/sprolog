@@ -20,14 +20,14 @@ object Prolog
 			def primary( value: Token ) =
 				value.kind match
 				{
-					case 'intsym => NumberAST( value.s.toInt, value.start.head.pos )
- 					case 'atom => AtomAST( Symbol(value.s), value.start.head.pos )
-					case 'string => StringAST( value.s, value.start.head.pos )
-					case 'integer => NumberAST( value.s.toInt, value.start.head.pos )
-					case 'float => NumberAST( value.s.toDouble, value.start.head.pos )
-					case 'variable if value.s == "_" => AnonymousAST( value.start.head.pos )
-					case 'variable => VariableAST( Symbol(value.s), value.start.head.pos )
-					case `nilsym` => AtomAST( nilsym, value.start.head.pos )
+					case 'intsym => NumberAST( value.s.toInt ) pos value.start.head.pos
+ 					case 'atom => AtomAST( Symbol(value.s) ) pos value.start.head.pos
+					case 'string => StringAST( value.s ) pos value.start.head.pos
+					case 'integer => NumberAST( value.s.toInt ) pos value.start.head.pos
+					case 'float => NumberAST( value.s.toDouble ) pos value.start.head.pos
+					case 'variable if value.s == "_" => AnonymousAST() pos value.start.head.pos
+					case 'variable => VariableAST( Symbol(value.s) ) pos value.start.head.pos
+					case `nilsym` => AtomAST( nilsym ) pos value.start.head.pos
 					case _ => value.start.head.pos.error( "unrecognized token: [" + value.kind + "]" )
 				}
 			
@@ -35,7 +35,7 @@ object Prolog
 				if (functor.kind == '-' && args.length == 1 && args(0).v.isInstanceOf[NumberAST])
 					args(0).v match
 					{
-						case NumberAST( n, _ ) => NumberAST( Math('-, n).asInstanceOf[Number], functor.start.head.pos )
+						case NumberAST( n ) => NumberAST( Math('-, n).asInstanceOf[Number] ) pos functor.start.head.pos
 					}
 				else
 					StructureAST(
@@ -44,7 +44,7 @@ object Prolog
 							case 'atom|_: Character => Symbol(functor.s)
 							case s: Symbol => s
 						}),
-						args.map(_.v), functor.start.head.pos )
+						args.map(_.v) ) pos functor.start.head.pos
 		}
 
 	val db = new PrologDB
@@ -120,7 +120,7 @@ object Prolog
 		val s1 = StructureAST( s.f, s.args.map (
 			_ match
 			{
-				case VariableAST( v, _ ) =>
+				case VariableAST( v ) =>
 					varmap.get(v) match
 					{
 						case None =>
@@ -171,15 +171,13 @@ object Prolog
 		def transform( t: AST ) =
 			t match
 			{
-				case v@VariableAST( _, pos ) => StructureAST( 'call, IndexedSeq(v), pos )
+				case v@VariableAST( _ ) => StructureAST( 'call, IndexedSeq(v) ) pos v.pos
 				case _ => t
 			}
 			
 		q match
 		{
-			case StructureAST( COMMA, IndexedSeq(left, right), _ ) => transform( left ) #:: conjunctive( right )
-// 			case StructureAST( COMMA, IndexedSeq(_: StructureAST, right), _ ) => right.pos.error( "not a structure" )
-// 			case StructureAST( COMMA, IndexedSeq(left, _), _ ) => left.pos.error( "not a structure" )
+			case StructureAST( COMMA, IndexedSeq(left, right) ) => transform( left ) #:: conjunctive( right )
 			case _: StructureAST|_: AtomAST => Stream( q )
 			case _: VariableAST => Stream( transform(q) )
 			case _ => sys.error( "invalid query or rule body term: " + q )
@@ -222,8 +220,8 @@ object Prolog
 		{
 			t match
 			{
-				case VariableAST( v, _ ) => vars += v
-				case StructureAST( _, args, _ ) =>
+				case VariableAST( v ) => vars += v
+				case StructureAST( _, args ) =>
 					for (a <- args)
 						_structvars( a )
 				case _ =>
@@ -273,7 +271,7 @@ object Prolog
 					{
 						t.args(arg - 1) match
 						{
-							case VariableAST( v, _ ) =>
+							case VariableAST( v ) =>
 								varmap.get( v ) match
 								{
 									case None =>
@@ -342,27 +340,27 @@ object Prolog
 												}
 											case a: Addr =>
 												code += SetRefInstruction( a )
-											case AtomAST( atom, _ ) =>
+											case AtomAST( atom ) =>
 												code += SetConstantInstruction( atom )
-											case NumberAST( n, _ ) =>
+											case NumberAST( n ) =>
 												code += SetConstantInstruction( n )
-											case StringAST( s, _ ) =>
+											case StringAST( s ) =>
 												code += SetConstantInstruction( s )
-											case ConstantAST( c, _ ) =>
+											case ConstantAST( c ) =>
 												code += SetConstantInstruction( c )
-											case AnonymousAST( _ ) =>
+											case AnonymousAST() =>
 												code += SetVoidInstruction( 1 )
 										}
 								}
-							case AtomAST( atom, _ ) =>
+							case AtomAST( atom ) =>
 								code += PutConstantInstruction( atom, arg )
-							case NumberAST( n, _ ) =>
+							case NumberAST( n ) =>
 								code += PutConstantInstruction( n, arg )
-							case StringAST( s, _ ) =>
+							case StringAST( s ) =>
 								code += PutConstantInstruction( s, arg )
-							case ConstantAST( c, _ ) =>
+							case ConstantAST( c ) =>
 								code += PutConstantInstruction( c, arg )
-							case AnonymousAST( _ ) =>
+							case AnonymousAST() =>
 								code += PutVoidInstruction( arg )
 						}
 					}
@@ -374,9 +372,9 @@ object Prolog
 						code += DeallocateInstruction
 						code += ExecuteInstruction( Indicator(t.f, t.arity) )
 					}
-				case AtomAST( '!, _ ) =>
+				case AtomAST( '! ) =>
 					code += CutInstruction
-				case AtomAST( a, _ ) =>
+				case AtomAST( a ) =>
 					if (terms.hasNext)
 						code += CallInstruction( Indicator(a, 0) )
 					else
@@ -398,7 +396,7 @@ object Prolog
 //		code += DeallocateInstruction
 	}
 	
-	def fact( f: AST, code: ArrayBuffer[Instruction], target: Indicator )
+	def fact( f: AST, code: ArrayBuffer[Instruction], target: Indicator, neckcut: Boolean = false )
 	{
 	val start = code.length
 	
@@ -407,6 +405,9 @@ object Prolog
 		if (code.length > start && target != null)
 			code(start).target( target )
 		
+		if (neckcut)
+			code += CutInstruction
+			
 		if (code.length == start && target != null)
 			code += ProceedInstruction().target( target )
 		else
@@ -441,7 +442,7 @@ object Prolog
 				{
 					p.args(arg - 1) match
 					{
-						case VariableAST( v, _ ) =>
+						case VariableAST( v ) =>
 							varmap.get( v ) match
 							{
 								case None =>
@@ -485,26 +486,26 @@ object Prolog
 											code += UnifyVariableInstruction( b, n )
 											seen add (b, n)
 										}
-									case AtomAST( atom, _ ) =>
+									case AtomAST( atom ) =>
 										code += UnifyConstantInstruction( atom )
-									case NumberAST( n, _ ) =>
+									case NumberAST( n ) =>
 										code += UnifyConstantInstruction( n )
-									case StringAST( s, _ ) =>
+									case StringAST( s ) =>
 										code += UnifyConstantInstruction( s )
-									case ConstantAST( c, _ ) =>
+									case ConstantAST( c ) =>
 										code += UnifyConstantInstruction( c )
-									case AnonymousAST( _ ) =>
+									case AnonymousAST() =>
 										code += UnifyVoidInstruction( 1 )
 								}
-						case AtomAST( atom, _ ) =>
+						case AtomAST( atom ) =>
 							code += GetConstantInstruction( atom, arg )
-						case NumberAST( n, _ ) =>
+						case NumberAST( n ) =>
 							code += GetConstantInstruction( n, arg )
-						case StringAST( s, _ ) =>
+						case StringAST( s ) =>
 							code += GetConstantInstruction( s, arg )
-						case ConstantAST( c, _ ) =>
+						case ConstantAST( c ) =>
 							code += GetConstantInstruction( c, arg )
-						case AnonymousAST( _ ) =>
+						case AnonymousAST() =>
 							// anonymous variable in head argument position can be ignored - no code required
 					}
 				}
@@ -527,21 +528,21 @@ object Prolog
 									code += UnifyVariableInstruction( b, n )
 									seen add (b, n)
 								}
-							case AtomAST( atom, _ ) =>
+							case AtomAST( atom ) =>
 								code += UnifyConstantInstruction( atom )
-							case NumberAST( n, _ ) =>
+							case NumberAST( n ) =>
 								code += UnifyConstantInstruction( n )
-							case StringAST( s, _ ) =>
+							case StringAST( s ) =>
 								code += UnifyConstantInstruction( s )
-							case ConstantAST( c, _ ) =>
+							case ConstantAST( c ) =>
 								code += UnifyConstantInstruction( c )
-							case AnonymousAST( _ ) =>
+							case AnonymousAST() =>
 								code += UnifyVoidInstruction( 1 )
 						}
 				}
 			case _ =>
 		}
-						
+	
 		varmap
 	}
 	
@@ -585,7 +586,7 @@ object Prolog
 		val (pred, clause) =
 			c match
 			{
-				case StructureAST( RULE, IndexedSeq(h, b), _ ) => (indicator( h ), Clause( h, b ))
+				case StructureAST( RULE, IndexedSeq(h, b) ) => (indicator( h ), Clause( h, b ))
 				case _: StructureAST | _: AtomAST => (indicator( c ), Clause( c, AtomAST('true) ))
 				case _ => c.pos.error( "invalid fact or rule head" )
 			}
@@ -654,8 +655,9 @@ object Prolog
 		
 		c match
 		{
-			case Clause( f: StructureAST, AtomAST('true, _) ) => fact( f, code, target )
-			case Clause( a: AtomAST, AtomAST('true, _) ) => fact( a, code, target )
+			case Clause( f: StructureAST, AtomAST('true) ) => fact( f, code, target )
+			case Clause( f: StructureAST, AtomAST('!) ) => fact( f, code, target, neckcut = true )
+			case Clause( a: AtomAST, AtomAST('true) ) => fact( a, code, target )
 			case Clause( h, b ) => rule( h, b, code, target )
 		}
 	}
@@ -705,10 +707,6 @@ object Prolog
 	}
 	
 	case class Var( v: Symbol, bank: Int, reg: Int ) extends AST
-	{
-		val pos: Position = null
-	}
-	
 	case class RHS( f: Symbol, args: Vector[Var] )
 	case class Eq( lhs: Int, rhs: RHS )
 }

@@ -168,48 +168,14 @@ class WAM
 		
 		term match
 		{
-			case AtomAST( atom, _ ) => ConCell( atom )
-			case NumberAST( n, _ ) => ConCell( n )
-			case StringAST( s, _ ) => ConCell( s )
-			case ConstantAST( c, _ ) => ConCell( c )
-			case StructureAST( DOT, Seq(l, r), _ ) => LisCell( writeseq(Seq(write(l), write(r))) )
-			case StructureAST( f, args, _ ) => StrCell( writeseq(FunCell(f, args.length) +: (for (a <- args) yield write(a))) )
+			case AtomAST( atom ) => ConCell( atom )
+			case NumberAST( n ) => ConCell( n )
+			case StringAST( s ) => ConCell( s )
+			case ConstantAST( c ) => ConCell( c )
+			case StructureAST( DOT, Seq(l, r) ) => LisCell( writeseq(Seq(write(l), write(r))) )
+			case StructureAST( f, args ) => StrCell( writeseq(FunCell(f, args.length) +: (for (a <- args) yield write(a))) )
 		}
 	}
-
-// 	def write( term: AST, a: Addr ): Addr =
-// 	{
-// 		term match
-// 		{
-// 			case AtomAST( atom, _ ) =>
-// 				put( a, ConCell(atom) )
-// 				a + 1
-// 			case NumberAST( n, _ ) =>
-// 				put( a, ConCell(n) )
-// 				a + 1
-// 			case StringAST( s, _ ) =>
-// 				put( a, ConCell(s) )
-// 				a + 1
-// 			case ConstantAST( c, _ ) =>
-// 				put( a, ConCell(c) )
-// 				a + 1
-// 			case StructureAST( DOT, Seq(l, r), _ ) =>
-// 				put( a, LisCell(a + 1) )
-// 				write( r, write(l, a + 2) )
-// 			case StructureAST( f, args, _ ) =>
-// 				def writearg( ind: Int, a: Addr  ): Addr =
-// 				{
-// 					if (ind == args.length)
-// 						a
-// 					else
-// 						writearg( ind + 1, write(args(ind), a) )
-// 				}
-// 				
-// 				put( a, PtrCell('str, a + 1) )
-// 				put( a + 1, FunCell(f, args.length) )
-// 				writearg( 0, a + 2 )
-// 		}
-// 	}
 	
 	def display( m: Map[String, AST] ): Map[String, String] = m map {case (k, v) => k -> display( v )}
 	
@@ -221,17 +187,17 @@ class WAM
 		def _displayPrec( prec: Int, a: AST ): String =
 			a match
 			{
-				case NumberAST( n, _ ) => n.toString
-				case AtomAST( atom, _ ) => atom.name
-				case StringAST( s, _ ) => s
-				case VariableAST( s, _ ) => s.name
+				case NumberAST( n ) => n.toString
+				case AtomAST( atom ) => atom.name
+				case StringAST( s ) => s
+				case VariableAST( s ) => s.name
 				case _: Addr => a.toString
 				case s: StructureAST if isList( s ) => toList( s ).map( display(_) ).mkString( "[", ", ", "]" )
 				case s: StructureAST if isVarList( s ) =>
 					val list = toVarList( s )
 					
 					list.dropRight( 1 ).map( display(_) ).mkString( "[", ", ", "|" ) + display( list.last ) + "]"
-				case StructureAST( f, args, _ ) =>
+				case StructureAST( f, args ) =>
 					if (args.length == 1)
 					{
 						ops.operator( f, 'prefix ) match
@@ -269,7 +235,7 @@ class WAM
 					else
 						_display( f, args )
 					
-				case ConstantAST( c, _ ) => c.toString
+				case ConstantAST( c ) => c.toString
 			}
 			
 		_displayPrec( 10000, a )
@@ -825,8 +791,6 @@ class Addr( val store: Store, val ind: Int ) extends AST with Address with Order
 	def read = store(ind)
 
 	def write( c: Cell ) = store(ind) = c
-	
-	val pos = null
 	
 	def compare( that: Addr ) =
 	{
