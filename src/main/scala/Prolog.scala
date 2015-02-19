@@ -394,7 +394,7 @@ object Prolog
 			code(start).target( target )
 		
 		if (neckcut)
-			code += CutInstruction
+			code += NeckCutInstruction
 			
 		if (code.length == start && target != null)
 			code += ProceedInstruction().target( target )
@@ -688,6 +688,7 @@ object Prolog
 				case PutListInstruction( i )				=> s"put_list $i"
 				case GetListInstruction( i )				=> s"get_list $i"
 				case PutVoidInstruction( i )				=> s"put_void $i"
+				case NeckCutInstruction					=> "neck_cut"
 				case CutInstruction						=> "cut"
 				} )
 		}
