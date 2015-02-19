@@ -5,16 +5,24 @@ import ca.hyperreal.rtcep.Position
 
 abstract class AST
 {
-	val pos: Position
+	var _pos: Position = null
+	
+	def pos( p: Position ) =
+	{
+		_pos = p
+		this
+	}
+	
+	def pos = _pos
 }
 
-case class AtomAST( atom: Symbol, pos: Position = null ) extends AST
-case class NumberAST( n: Number, pos: Position = null ) extends AST
-case class StringAST( s: String, pos: Position = null ) extends AST
-case class ConstantAST( c: Any, pos: Position = null ) extends AST
-case class VariableAST( v: Symbol, pos: Position = null ) extends AST
-case class AnonymousAST( pos: Position = null ) extends AST
-case class StructureAST( f: Symbol, args: IndexedSeq[AST], pos: Position = null ) extends AST
+case class AtomAST( atom: Symbol ) extends AST
+case class NumberAST( n: Number ) extends AST
+case class StringAST( s: String ) extends AST
+case class ConstantAST( c: Any ) extends AST
+case class VariableAST( v: Symbol ) extends AST
+case class AnonymousAST() extends AST
+case class StructureAST( f: Symbol, args: IndexedSeq[AST] ) extends AST
 {
 	def arity = args.length
 }
