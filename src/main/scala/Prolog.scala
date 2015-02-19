@@ -384,7 +384,7 @@ object Prolog
 		code += DeallocateInstruction
 	}
 	
-	def fact( f: AST, code: ArrayBuffer[Instruction], target: Indicator )
+	def fact( f: AST, code: ArrayBuffer[Instruction], target: Indicator, neckcut: Boolean = false )
 	{
 	val start = code.length
 	
@@ -393,6 +393,9 @@ object Prolog
 		if (code.length > start && target != null)
 			code(start).target( target )
 		
+		if (neckcut)
+			code += CutInstruction
+			
 		if (code.length == start && target != null)
 			code += ProceedInstruction().target( target )
 		else
@@ -641,6 +644,7 @@ object Prolog
 		c match
 		{
 			case Clause( f: StructureAST, AtomAST('true) ) => fact( f, code, target )
+			case Clause( f: StructureAST, AtomAST('!) ) => fact( f, code, target, neckcut = true )
 			case Clause( a: AtomAST, AtomAST('true) ) => fact( a, code, target )
 			case Clause( h, b ) => rule( h, b, code, target )
 		}
