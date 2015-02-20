@@ -232,6 +232,18 @@ object Prolog
 		vars.toList
 	}
 	
+	def compileCall( q: AST, code: ArrayBuffer[Instruction] ) =
+	{
+		if (q.isInstanceOf[VariableAST])
+			sys.error( "instantiation error" )
+			
+	val permvars = permanent( q, new HashSet[Symbol] )
+			
+		code += CallAllocateInstruction( permvars.size + 1 )
+		body( q, code, permvars, new HashMap[Symbol, (Int, Int)], false, true )
+		code
+	}
+	
 	def compileQuery( q: AST, code: ArrayBuffer[Instruction] = new ArrayBuffer[Instruction] ) =
 	{
 		if (q.isInstanceOf[VariableAST])
@@ -239,17 +251,17 @@ object Prolog
 			
 	val permvars = permanent( q, new HashSet[Symbol] )
 	
-		code += AllocateInstruction( permvars.size + 1 )
-		body( q, code, permvars, new HashMap[Symbol, (Int, Int)], true )
+		code += AllocateInstruction( permvars.size + 1 )		
+		body( q, code, permvars, new HashMap[Symbol, (Int, Int)], true, false )
 		code
 	}
 	
-	def body( q: AST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int], varmap: HashMap[Symbol, (Int, Int)], variables: Boolean )
+	def body( q: AST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int], varmap: HashMap[Symbol, (Int, Int)], variables: Boolean, call: Boolean )
 	{
 	val seen = new HashSet[(Int, Int)] ++ varmap.values
 	val conj = conjunctive( q )
 	val terms =
-		(if (conj.head.isInstanceOf[AtomAST] && conj.head.asInstanceOf[AtomAST].atom == '!)
+		(if (!call && conj.head == AtomAST( '! ))
 		{
 			code += NeckCutInstruction
 			conj.tail
@@ -380,7 +392,20 @@ object Prolog
 						code += ExecuteInstruction( Indicator(t.f, t.arity) )
 					}
 				case AtomAST( '! ) =>
+// 					if (!terms.hasNext)
+// 					{
+// 						code += DeallocateInstruction
+// 						code += NeckCutInstruction
+// 					}
+// 					else
+// 						code += CutInstruction
 					code += CutInstruction
+					
+					if (!terms.hasNext)
+					{
+						code += DeallocateInstruction
+						code += ProceedInstruction()
+					}
 				case AtomAST( a ) =>
 					if (terms.hasNext)
 						code += CallInstruction( Indicator(a, 0) )
@@ -431,7 +456,7 @@ object Prolog
 		else
 			code += AllocateInstruction( permvars.size + 1 ).target( pred )
 
-		body( b, code, permvars, head(h, code, permvars), false )
+		body( b, code, permvars, head(h, code, permvars), false, false )
 	}
 	
 	def head( h: AST, code: ArrayBuffer[Instruction], permvars: Map[Symbol, Int] ) =

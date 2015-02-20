@@ -587,13 +587,15 @@ class WAM
 					argc = f.arity
 					p = c.location
 				}
-				else if (!c.predicate( interface ))
-					backtrack
+				else if (c.predicate( interface ))
+					p = cp
+				else
+					backtrack					
 		}
 		
 		if (trace)
 		{
-			println( s"mode: $mode  H: $h  S: $s" )
+			println( s"mode: $mode  H: $h  S: $s  CP: $cp" )
 			println( x )
 			
 			if (estack ne null)

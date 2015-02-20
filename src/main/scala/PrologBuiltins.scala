@@ -97,8 +97,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 	{ w =>
 	val start = w.wam.callcode.size
 	
-		Prolog.compileQuery( w.wam.arg(1), w.wam.callcode )
-		w.wam.callcode(start) = CallAllocateInstruction( w.wam.callcode(start).asInstanceOf[AllocateInstruction].n )
+		Prolog.compileCall( w.wam.arg(1), w.wam.callcode )
 		w.wam.cp = w.wam.p
 		w.wam.p = start + w.wam.QUERY
 		true
