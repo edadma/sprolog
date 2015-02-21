@@ -28,6 +28,7 @@ class WAM
 	protected [sprolog] var callcode: ArrayBuffer[Instruction] = _
 	protected [sprolog] var p: Int = _
 	protected [sprolog] var cp : Int = _
+	protected [sprolog] var callcp : Int = _
 	protected [sprolog] val vars = new ArrayBuffer[(Symbol, Addr)]
 	protected [sprolog] val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected [sprolog] var argc: Int = _
@@ -433,12 +434,16 @@ class WAM
 					b0 = bstack
 					p = c.location
 				}
-				else if (!c.predicate( interface ))
-					backtrack
+				else
+				{
+					if (!c.predicate( interface ))
+						backtrack
+				}
 			case ProceedInstruction() =>
 				p = cp
 			case CallAllocateInstruction( n ) =>
-				estack = new Frame( estack, cp, n, bstack )
+				estack = new Frame( estack, callcp, n, bstack )
+				cp = callcp
 				regs(1) = estack.perm
 			case AllocateInstruction( n ) =>
 				estack = new Frame( estack, cp, n, b0 )
@@ -588,7 +593,7 @@ class WAM
 					p = c.location
 				}
 				else if (c.predicate( interface ))
-					p = cp
+				{}//p = cp
 				else
 					backtrack					
 		}

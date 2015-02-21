@@ -47,7 +47,7 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 		query( p, """\+ !; X = 1.""" ) shouldBe "X = 1"
 		query( p, """\+ (X = 1 ; X = 2), X = 3.""" ) shouldBe "no"
 		query( p, """X = 1, \+ (X = 1 ; X = 2).""" ) shouldBe "no"
-		evaluating {query( p, """\+ (fail, 1).""" )} should produce [RuntimeException]
+		a [RuntimeException] should be thrownBy {query( p, """\+ (fail, 1).""" )}
 		
 		// once 122
 		query( p, "once( X = 1 ; X = 2 )." ) shouldBe "X = 1"
@@ -57,6 +57,6 @@ class Predefined extends FreeSpec with PropertyChecks with Matchers
 		// repeat 153
 		query( p, "repeat, !." ) shouldBe "yes"
 		query( p, "repeat, !, fail." ) shouldBe "no"
-		evaluating {query( p, "iterator_( [1, 2, 3], I ), repeat, next_( I, _ ), fail." )} should produce [NoSuchElementException]
+		a [NoSuchElementException] should be thrownBy {query( p, "iterator_( [1, 2, 3], I ), repeat, next_( I, _ ), fail." )}
 	}
 }

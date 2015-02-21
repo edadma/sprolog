@@ -8,12 +8,12 @@ object TestMain extends App
 	val db = Prolog.compileProgram( p )
 	val v = new WAM
 	
-	Prolog.listing( db.code(Indicator('once, 1)).get )
+//	Prolog.listing( db.code(Indicator('once, 1)).get )
 	v.db = db
 	v.ops = Prolog.ops
 	v.predicates = Prolog.builtins
 	
-	val q = Prolog.parseQuery( """ once(true), write(asdf) """ )
+	val q = Prolog.parseQuery( """ X = 1 ; X = 2 """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println

@@ -735,6 +735,8 @@ object Prolog
 				case ExecuteInstruction( f )				=> s"execute $f"
 				case NeckCutInstruction					=> "neck_cut"
 				case CutInstruction						=> "cut"
+				case CallAllocateInstruction( n )			=> s"call_allocate $n"
+				case PutRefInstruction( a, i )			=> s"put_ref $a, $i"
 				} )
 		}
 	}

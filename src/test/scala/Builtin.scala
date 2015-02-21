@@ -10,65 +10,65 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 {
 	"logic and control" in
 	{
-// 	val p = program( """
-// 		insect( bee ).
-// 		insect( ant ) :- !.
-// 		insect( beetle ).
-// 		animal( horse ).
-// 		animal( cat ).
-// 		animal( dog ).
-// 		""" )
-// 			
-// 		// call 60
-//   		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
-//   		query( p, "call(!) ; true." ) shouldBe "yes"
-//   		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
-// 			"""	|X = 1
-// 				|X = 2
-// 				""".stripMargin.trim			
-// 		
-// 		// ! 85
-// 		query( p, "insect(X)." ) shouldBe
-// 			"""	|X = bee
-// 				|X = ant
-// 				""".stripMargin.trim			
-// 		query( p, "insect(X), !." ) shouldBe "X = bee"
-// 		query( p, "(insect(X); animal(Y)), !." ) should fullyMatch regex """X = bee, Y = H\d+"""
-// 		query( p, "insect(X), !, animal(Y)." ) shouldBe
-// 			"""	|X = bee, Y = horse
-// 				|X = bee, Y = cat
-// 				|X = bee, Y = dog
-// 				""".stripMargin.trim			
+	val p = program( """
+		insect( bee ).
+		insect( ant ) :- !.
+		insect( beetle ).
+		animal( horse ).
+		animal( cat ).
+		animal( dog ).
+		""" )
+			
+		// call 60
+//  		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
+  		query( p, "call(!) ; true." ) shouldBe "yes"
+  		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
+			"""	|X = 1
+				|X = 2
+				""".stripMargin.trim			
+		
+		// ! 85
+		query( p, "insect(X)." ) shouldBe
+			"""	|X = bee
+				|X = ant
+				""".stripMargin.trim			
+		query( p, "insect(X), !." ) shouldBe "X = bee"
+		query( p, "(insect(X); animal(Y)), !." ) should fullyMatch regex """X = bee, Y = H\d+"""
+		query( p, "insect(X), !, animal(Y)." ) shouldBe
+			"""	|X = bee, Y = horse
+				|X = bee, Y = cat
+				|X = bee, Y = dog
+				""".stripMargin.trim			
 	}
 	
 	"term creation and decomposition" in
 	{
 		// arg 39
-//  		query( db, "arg(2, foo(a, b, c), X)." ) shouldBe "X = b"
-// 		query( db, "arg(2, foo(a, f(X, b), c), f(a, Y))." ) shouldBe "X = a, Y = b"
-// 		query( db, "arg(1, foo(a, b, c), b)." ) shouldBe "no"
-// 		
-// 		// functor 93
-//  		query( db, "functor( asdf, A, B )." ) shouldBe "A = asdf, B = 0"
-//  		query( db, "functor( 1.5, A, B )." ) shouldBe "A = 1.5, B = 0"
-//  		query( db, "functor( A, asdf, 0 )." ) shouldBe "A = asdf"
-//  		query( db, "functor( A, 1.5, 0 )." ) shouldBe "A = 1.5"
-//  		query( db, "functor( foo(aa, X), Y, Z )." ) should fullyMatch regex """X = H\d+, Y = foo, Z = 2"""
-// 		query( db, "functor( X, foo, 3 )." ) should fullyMatch regex """X = foo\(H\d+, H\d+, H\d+\)"""
-// 		query( db, "functor( F, 1.5, 1 )." ) shouldBe "no"
-// 		
-// 		// univ 179
-//  		query( db, "A =.. [f, a]." ) shouldBe "A = f(a)"
-// 		query( db, "A =.. [f]." ) shouldBe "A = f"
-// 		query( db, "A =.. [f(a)]." ) shouldBe "no"
-// 		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"
-// 		query( db, "A =.. [f, g(b), 1]." ) shouldBe "A = f(g(b), 1)"
-//  		query( db, "a =.. [a]." ) shouldBe "yes"
-// 		query( db, "1.5 =.. [1.5]." ) shouldBe "yes"
-// 		query( db, "a =.. A." ) shouldBe "A = [a]"
-// 		query( db, "foo(a, b) =.. [foo, a, b]." ) shouldBe "yes"
-// 		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
-// 		query( db, "foo(a, b) =.. [A|B]." ) shouldBe "A = foo, B = [a, b]"
+ 		query( db, "arg(2, foo(a, b, c), X)." ) shouldBe "X = b"
+		query( db, "arg(2, foo(a, f(X, b), c), f(a, Y))." ) shouldBe "X = a, Y = b"
+		query( db, "arg(1, foo(a, b, c), b)." ) shouldBe "no"
+		
+		// functor 93
+ 		query( db, "functor( asdf, A, B )." ) shouldBe "A = asdf, B = 0"
+ 		query( db, "functor( 1.5, A, B )." ) shouldBe "A = 1.5, B = 0"
+ 		query( db, "functor( A, asdf, 0 )." ) shouldBe "A = asdf"
+ 		query( db, "functor( A, 1.5, 0 )." ) shouldBe "A = 1.5"
+ 		query( db, "functor( foo(aa, X), Y, Z )." ) should fullyMatch regex """X = H\d+, Y = foo, Z = 2"""
+		query( db, "functor( X, foo, 3 )." ) should fullyMatch regex """X = foo\(H\d+, H\d+, H\d+\)"""
+		query( db, "functor( F, 1.5, 1 )." ) shouldBe "no"
+		
+		// univ 179
+ 		query( db, "A =.. [f, a]." ) shouldBe "A = f(a)"
+		query( db, "A =.. [f]." ) shouldBe "A = f"
+		query( db, "A =.. [f(a)]." ) shouldBe "no"
+		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"
+		query( db, "A =.. [f, g(b), 1]." ) shouldBe "A = f(g(b), 1)"
+ 		query( db, "a =.. [a]." ) shouldBe "yes"
+		query( db, "1.5 =.. [1.5]." ) shouldBe "yes"
+		query( db, "a =.. A." ) shouldBe "A = [a]"
+		query( db, "foo(a, b) =.. [foo, a, b]." ) shouldBe "yes"
+		query( db, "foo(a, b) =.. [foo, b, a]." ) shouldBe "no"
+		query( db, "foo(a, b) =.. [A|B]." ) shouldBe "A = foo, B = [a, b]"
 	}
 	
 	"term comparison" in
