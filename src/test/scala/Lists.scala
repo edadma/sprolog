@@ -51,13 +51,12 @@ class Lists extends FreeSpec with PropertyChecks with Matchers
 	
 	"intersection" in
 	{
-	val p = program( """
-		intersection( [], _, [] ).
-		intersection( [H|T1], L, [H|T2] ) :- member( H, L ), intersection( T1, L, T2 ).
-		intersection( [_|T1], L, T2 ) :- intersection( T1, L, T2 ).
-		""" )
+		queryOnce( db, "intersection( [a, b, c, d], [b, c, d, e], L )." ) shouldBe "L = [b, c, d]"
+	}
 	
-		queryOnce( p, "intersection( [a, b, c, d], [b, c, d, e], L )." ) shouldBe "L = [b, c, d]"
+	"powerset" in
+	{
+		queryOnce( db, "powerset([1,2,3], P)." ) shouldBe "P = [[], [3], [2], [3, 2], [1], [3, 1], [2, 1], [3, 2, 1]]"
 	}
 	
 	"permutation" in

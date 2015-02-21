@@ -178,4 +178,63 @@ class Problems extends FreeSpec with PropertyChecks with Matchers
 	
 		query( p, "d( x*x - 2, x, X ), simp( X, Y )" ) shouldBe "X = x*1 + x*1 - 0, Y = 2*x"
 	}
+	
+	"hamming" in
+	{
+	val p = program( """
+		hamming(N, [1|Xs]) :-
+			init_queue(2, Q),
+			init_queue(3, R),
+			init_queue(5, S),
+			hamming_(N, Q, R, S, Xs).
+		
+		hamming_(1, _, _, _, []) :- !.
+		hamming_(I, Q, R, S, [X|Xs]) :-
+			I > 1,
+			peek(Q, A),
+			peek(R, B),
+			peek(S, C),
+			min([A,B,C], X), % The smallest of the values at the front of the queues
+			update(Q, X, Q1),
+			update(R, X, R1),
+			update(S, X, S1),
+			I1 is I - 1,
+			hamming_(I1, Q1, R1, S1, Xs).
+
+		% Returns the smallest number in the list.
+		min([X|Xs], Y) :- min_(Xs, X, Y).
+
+		min_([], X, X).
+		min_([Y|Ys], X, Z) :- Y =< X, !, min_(Ys, Y, Z).
+		min_([_|Ys], X, Z) :- min_(Ys, X, Z).
+
+		% Updates the queues.
+		update(Q, X, Q1) :-  
+			dequeue(X, Q, Q2), !, % X was at the front of this queue; it has been removed
+			id(Q, P),             % P is the prime number associated with this queue
+			Y is X * P,
+			enqueue(Y, Q2, Q1).   % X*P has been put at the end of the queue
+			update(Q, X, Q1):-      % X is not at the front of this queue
+			id(Q, P),             % P is the prime number associated with this queue
+			Y is X * P,
+			enqueue(Y, Q, Q1).    % X*P has been put at the end of the queue
+
+		% Initializes a queue.
+		init_queue(P, q(P,[P|Zs],Zs)).
+
+		% Adds an element to the end of the queue.                                   
+		enqueue(X, q(P,Ys,[X|Zs]), q(P,Ys,Zs)).
+
+		% Removes an element from the front of the queue.                           
+		dequeue(X, q(P,[X|Ys],Zs), q(P,Ys,Zs)).
+
+		% Returns the value of the element at the front of the queue.               
+		peek(q(_,[X|_],_), X).
+
+		% Returns the prime number, multiples of which are contained in the queue.
+		id(q(P,_,_), P).
+		""" )
+	
+		query( p, "hamming( 26, L )" ) shouldBe "L = [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48, 50, 54, 60]"
+	}
 }

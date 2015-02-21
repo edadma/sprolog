@@ -10,8 +10,8 @@ class WAM
 	var predicates: PredicateMap = _
 	var ops: OperatorTable = _
 	
-	protected val trace = false
-	protected val step = false
+	protected [sprolog] var trace = false
+	protected [sprolog] var step = false
 	val QUERY = 1000000000
 	protected [sprolog] val heap = new Store( "H", 10000 )
 	protected [sprolog] val x = new Store( "X", 100 )
