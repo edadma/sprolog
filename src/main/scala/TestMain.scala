@@ -13,11 +13,11 @@ object TestMain extends App
 	v.ops = Prolog.ops
 	v.predicates = Prolog.builtins
 	
-	val q = Prolog.parseQuery( """ X = 1 ; X = 2 """ )
+	val q = Prolog.parseQuery( """ (X = 1 ; X = 2), write(X) """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
-//  	Prolog.listing( qc )
+//	Prolog.listing( qc )
 
 	v query qc
 }

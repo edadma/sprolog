@@ -27,6 +27,18 @@ class PredicateMap( evaluator: Evaluator ) extends HashMap[Indicator, Predicate]
 
 class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMap( evaluator )
 {
+	define( "traceon", 0 )
+	{ w =>
+		w.wam.trace = true
+		true
+	}
+	
+	define( "traceoff", 0 )
+	{ w =>
+		w.wam.trace = false
+		true
+	}
+	
 	def identical( w: WAMInterface ) =
 	{
 	val l = w.wam.arg( 1 )

@@ -475,6 +475,7 @@ object Prolog
 					p.args(arg - 1) match
 					{
 						case VariableAST( v ) =>
+							
 							varmap.get( v ) match
 							{
 								case None =>
@@ -491,7 +492,13 @@ object Prolog
 											seen add (1, n)
 									}
 								case Some( (b, n) ) =>
-									code += GetValueInstruction( b, n, arg )
+									if (seen( b, n ))
+										code += GetValueInstruction( b, n, arg )
+									else
+									{
+										code += GetVariableInstruction( b, n, arg )
+										seen add (b, n)
+									}
 							}
 						case s: StructureAST =>
 							regmap(arg) = s
