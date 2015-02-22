@@ -237,4 +237,32 @@ class Problems extends FreeSpec with PropertyChecks with Matchers
 	
 		query( p, "hamming( 26, L )" ) shouldBe "L = [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48, 50, 54, 60]"
 	}
+	
+	"n-queens" in
+	{
+	val p = program( """
+		queens(N, Queens):-
+		N > 0, integers(1, N, Rows), queens_1(Rows, N, [], [], [], Queens).
+
+		queens_1([], 0, Queens, _, _, Queens).
+		queens_1(Rows, Col, A, B, C, Queens):-
+		delete(Row, Rows, Rows1),
+		/* All squares on the same NW-SE diagonal have the same value of Row+Col */
+		RowPlusCol  is Row + Col, \+ member(RowPlusCol,  B),
+		/* All squares on the same SW-NE diagonal have the same value of Row-Col */
+		RowMinusCol is Row - Col, \+ member(RowMinusCol, C),
+		Col1 is Col - 1,
+		queens_1(Rows1, Col1, [Row|A], [RowPlusCol|B], [RowMinusCol|C], Queens).
+
+		/* integers(M, N, Is) is true if Is is the list of integers from M to N    */
+		/*   inclusive.                                                            */
+		integers(N, N, [N]):-!.
+		integers(I, N, [I|Is]):-I < N, I1 is I + 1, integers(I1, N, Is).
+		""" )
+	
+		query( p, "queens(4, Queens)." ) shouldBe
+ 			"""	|Queens = [3, 1, 4, 2]
+				|Queens = [2, 4, 1, 3]
+				""".stripMargin.trim
+	}
 }
