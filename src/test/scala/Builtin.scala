@@ -20,7 +20,7 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		""" )
 			
 		// call 60
-//  		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
+  		query( p, "X = write( hello ), call( X )." ) shouldBe "helloX = write(hello)"
   		query( p, "call(!) ; true." ) shouldBe "yes"
   		query( p, "(X = 1; X = 2), call(!)." ) shouldBe
 			"""	|X = 1

@@ -426,10 +426,10 @@ class WAM
 					backtrack
 			case c@CallInstruction( f ) =>
 				c.update( db, predicates, backtrack _ )
-				
+				cp = p	//p is incremented prior to instruction execution
+					
 				if (c.location > -1)
 				{
-					cp = p	//p is incremented prior to instruction execution
 					argc = f.arity
 					b0 = bstack
 					p = c.location
@@ -443,7 +443,7 @@ class WAM
 				p = cp
 			case CallAllocateInstruction( n ) =>
 				estack = new Frame( estack, callcp, n, bstack )
-				cp = callcp
+//				cp = callcp
 				regs(1) = estack.perm
 			case AllocateInstruction( n ) =>
 				estack = new Frame( estack, cp, n, b0 )
@@ -592,8 +592,13 @@ class WAM
 					argc = f.arity
 					p = c.location
 				}
+				else if (f.functor == 'call && f.arity == 1)
+				{
+					if (!c.predicate( interface ))
+						backtrack
+				}
 				else if (c.predicate( interface ))
-				{}//p = cp
+					p = cp
 				else
 					backtrack					
 		}

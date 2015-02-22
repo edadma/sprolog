@@ -112,8 +112,9 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 		Prolog.compileCall( w.wam.arg(1), w.wam.callcode )
 //		Prolog.listing( w.wam.callcode.slice(start, w.wam.callcode.size) )
 		w.wam.callcp = w.wam.cp
-		w.wam.cp = w.wam.p
+//		w.wam.cp = w.wam.p
 		w.wam.p = start + w.wam.QUERY
+//		w.wam.cp = start + w.wam.QUERY
 		true
 	}
 	
