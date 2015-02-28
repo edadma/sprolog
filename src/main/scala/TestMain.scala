@@ -7,14 +7,14 @@ object TestMain extends App
 		a( G ) :- G.
 		""" )
 	val db = Prolog.compileProgram( p )
-	val v = new WAM
+	val v = new WAM //{tracefile = "trace"}
 	
 //	Prolog.listing( db.code(Indicator('once, 1)).get )
 	v.db = db
 	v.ops = Prolog.ops
 	v.predicates = Prolog.builtins
 	
-	val q = Prolog.parseQuery( """ traceon, call( write( hello ) ) """ )
+	val q = Prolog.parseQuery( """ (fail -> true; fail); true """ )//(fail -> true; fail); true
 	val qc = Prolog.compileQuery( q )
 
 //  	println

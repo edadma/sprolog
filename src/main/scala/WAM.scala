@@ -1,5 +1,7 @@
 package ca.hyperreal.sprolog
 
+import java.io.{FileOutputStream, PrintStream}
+
 import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 import collection.immutable.SortedMap
 
@@ -10,6 +12,8 @@ class WAM
 	var predicates: PredicateMap = _
 	var ops: OperatorTable = _
 	
+	protected [sprolog] var tracefile: String = null
+	protected [sprolog] var traceout: PrintStream = _
 	protected [sprolog] var trace = false
 	protected [sprolog] var step = false
 	val QUERY = 1000000000
@@ -287,6 +291,15 @@ class WAM
 		
 	protected [sprolog] def run =
 	{
+		traceout =
+			if (tracefile eq null)
+				Console.out
+			else
+			{
+				trace = true
+				new PrintStream( new FileOutputStream(tracefile), true )
+			}
+				
 		while (p > -1 && !fail)
 		{
 		val _p = p
@@ -301,6 +314,9 @@ class WAM
 				p = -1
 		}
 		
+		if (tracefile ne null)
+			traceout.close
+			
 		fail
 	}
 	
@@ -334,7 +350,7 @@ class WAM
 		
 		if (trace)
 		{
-			println( s"${p - 1}: $inst" )
+			Console.withOut( traceout ) {println( s"${p - 1}: $inst" )}
 			
 			if (step)
 				io.StdIn.readLine
@@ -604,16 +620,17 @@ class WAM
 		}
 		
 		if (trace)
-		{
-			println( s"mode: $mode  H: $h  S: $s  CP: $cp" )
-			println( x )
-			
-			if (estack ne null)
-				println( estack.perm )
+			Console.withOut( traceout )
+			{
+				println( s"mode: $mode  H: $h  S: $s  CP: $cp" )
+				println( x )
 				
-			println( heap )
-			println
-		}
+				if (estack ne null)
+					println( estack.perm )
+					
+				println( heap )
+				println
+			}
 	}
 	
 // 	protected def setConstant( c: Any ) =
