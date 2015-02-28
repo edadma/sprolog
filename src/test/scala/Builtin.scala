@@ -134,6 +134,8 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		// is 111
 		query( db, "X = 1+2, Y is X*3." ) shouldBe "X = 1 + 2, Y = 9"
 		query( db, "Result is 3+11.0." ) shouldBe "Result = 14.0"
+		query( db, "1 is 3 - 2." ) shouldBe "yes"
+		query( db, "A = 1, A is 3 - 2." ) shouldBe "A = 1"
 		query( db, "1 is 1.0." ) shouldBe "no"
 		
 		// number 117

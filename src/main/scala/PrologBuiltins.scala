@@ -50,19 +50,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 			l == r
 	}
 
-	define( "is", 2 )
-	{ w =>
-	val v = eval( 2, w )
-	
-		w.wam.arg(1) match
-		{
-			case NumberAST( n ) => n == v && n.getClass == v.getClass
-			case a: Addr =>
-				w.bind( a, ConCell(v) )
-				true
-			case _ => false
-		}
-	}
+	define( "is", 2 ) (w => w.unify( w.wam.addr(1), ConCell(eval(2, w)) ))
 	
 	define( "=:=", 2 ) (w => eval( 1, w ) == eval( 2, w ))
 	
