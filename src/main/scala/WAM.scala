@@ -620,7 +620,7 @@ class WAM
 		if (trace)
 			Console.withOut( traceout )
 			{
-				println( s"mode: $mode  H: $h  S: $s" )
+				println( s"mode: $mode  H: $h  S: $s  CP: $cp" )
 				println( x )
 				
 				if (estack ne null)
