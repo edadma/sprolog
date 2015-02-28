@@ -8,6 +8,45 @@ import Prolog.{program, query, queryOnce}
 
 class Problems extends FreeSpec with PropertyChecks with Matchers
 {
+	"ackermann" in
+	{
+	val p = program( """
+		between( I, J, I ) :- I =< J.
+		between( I, J, K ) :- I < J, I1 is I + 1, between( I1, J, K ).
+
+		ackermann( 0, N, Ans ) :- !, Ans is N + 1.
+		ackermann( M, 0, Ans ) :- M > 0, !, X is M - 1, ackermann( X, 1, Ans ).
+		ackermann( M, N, Ans ) :- M > 0, N > 0, X is M - 1, Y is N - 1, ackermann( M, Y, Ans2 ), ackermann( X, Ans2, Ans ).
+		""" )
+	
+		query( p, "between( 0, 3, M ), between( 0, 5, N ), ackermann( M, N, Result )." ) shouldBe
+ 			"""	|M = 0, N = 0, Result = 1
+				|M = 0, N = 1, Result = 2
+				|M = 0, N = 2, Result = 3
+				|M = 0, N = 3, Result = 4
+				|M = 0, N = 4, Result = 5
+				|M = 0, N = 5, Result = 6
+				|M = 1, N = 0, Result = 2
+				|M = 1, N = 1, Result = 3
+				|M = 1, N = 2, Result = 4
+				|M = 1, N = 3, Result = 5
+				|M = 1, N = 4, Result = 6
+				|M = 1, N = 5, Result = 7
+				|M = 2, N = 0, Result = 3
+				|M = 2, N = 1, Result = 5
+				|M = 2, N = 2, Result = 7
+				|M = 2, N = 3, Result = 9
+				|M = 2, N = 4, Result = 11
+				|M = 2, N = 5, Result = 13
+				|M = 3, N = 0, Result = 5
+				|M = 3, N = 1, Result = 13
+				|M = 3, N = 2, Result = 29
+				|M = 3, N = 3, Result = 61
+				|M = 3, N = 4, Result = 125
+				|M = 3, N = 5, Result = 253
+				""".stripMargin.trim
+	}
+	
 	"goldbach" in
 	{
 	val p = program( """
