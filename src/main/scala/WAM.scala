@@ -33,7 +33,7 @@ class WAM
 	protected [sprolog] var p: Int = _
 	protected [sprolog] var cp : Int = _
 	protected [sprolog] var callcp : Int = _
-	protected [sprolog] val vars = new ArrayBuffer[(Symbol, Addr)]
+	protected [sprolog] val vars = new HashMap[Symbol, Addr]
 	protected [sprolog] val regs = Array[Store]( x, null )	// second element points to current environment variable store
 	protected [sprolog] var argc: Int = _
 	protected val interface =
@@ -57,9 +57,38 @@ class WAM
 			
 			def unify( a1: Address, a2: Address ) = wam.unify( a1, a2 )
 		}
-		
+
+	def startTrace
+	{
+		traceout =
+			if (tracefile eq null)
+				Console.out
+			else
+			{
+				trace = true
+				new PrintStream( new FileOutputStream(tracefile), true )
+			}
+	}
+	
+	def stopTrace
+	{
+		if (tracefile ne null)
+			traceout.close
+	}
+	
+	def showVars
+	{
+		if (trace)
+			Console.withOut( traceout )
+			{
+				println( vars )
+			}
+	}
+	
 	def query( qc: ArrayBuffer[Instruction] )
 	{
+		startTrace
+		
 		if (execute( qc ))
 			println( "no" )
 		else
@@ -70,15 +99,20 @@ class WAM
 			{
 				while (success)
 				{
+					showVars
 					println( display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
 					resume
 				}
 			}
 		}
+		
+		stopTrace
 	}
 	
 	def queryOnce( qc: ArrayBuffer[Instruction] )
 	{
+		startTrace
+		
 		if (execute( qc ))
 			println( "no" )
 		else
@@ -86,8 +120,13 @@ class WAM
 			if (bindings isEmpty)
 				println( "yes" )
 			else
+			{
+				showVars
 				println( display(bindings).map({case (k, v) => s"$k = $v"}).mkString(", ") )
+			}
 		}
+		
+		stopTrace
 	}
 	
 	def execute( q: ArrayBuffer[Instruction] ) =
@@ -114,6 +153,12 @@ class WAM
 			false
 		else
 		{
+			if (trace)
+				Console.withOut( traceout )
+				{
+					println( ">>> BACKTRACK >>>" )
+				}
+			
 			backtrack
 			run
 		}
@@ -142,7 +187,7 @@ class WAM
 			case StrCell( p: Addr ) =>
 				val FunCell( f, n ) = p.read
 				
-				StructureAST( f, for (i <- 1 to n) yield read( p + i ) )
+				StructureAST( f, for (i <- 1 to n) yield read(p + i) )
 			case LisCell( a ) =>
 				StructureAST( DOT, IndexedSeq(read(a), read(a + 1)) )
 			case ConCell( c ) =>
@@ -291,15 +336,6 @@ class WAM
 		
 	protected [sprolog] def run =
 	{
-		traceout =
-			if (tracefile eq null)
-				Console.out
-			else
-			{
-				trace = true
-				new PrintStream( new FileOutputStream(tracefile), true )
-			}
-				
 		while (p > -1 && !fail)
 		{
 		val _p = p
@@ -314,9 +350,6 @@ class WAM
 				p = -1
 		}
 		
-		if (tracefile ne null)
-			traceout.close
-			
 		fail
 	}
 	
@@ -336,7 +369,7 @@ class WAM
 	protected [sprolog] def binding( v: Symbol, b: Int, n: Int, a: Addr )
 	{
 		if (v ne null)
-			vars += (v -> a)
+			vars(v) = a
 	}
 	
 	protected [sprolog] def perform( inst: Instruction )

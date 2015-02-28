@@ -8,6 +8,73 @@ import Prolog.{program, query, queryOnce}
 
 class Problems extends FreeSpec with PropertyChecks with Matchers
 {
+// 	"ackermann" in
+// 	{
+// 	val p = program( """
+// 		between( I, J, I ) :- I =< J.
+// 		between( I, J, K ) :- I < J, I1 is I + 1, between( I1, J, K ).
+// 
+// 		ackermann( 0, N, Ans ) :- !, Ans is N + 1.
+// 		ackermann( M, 0, Ans ) :- M > 0, !, X is M - 1, ackermann( X, 1, Ans ).
+// 		ackermann( M, N, Ans ) :- M > 0, N > 0, X is M - 1, Y is N - 1, ackermann( M, Y, Ans2 ), ackermann( X, Ans2, Ans ).
+// 		""" )
+// 	
+// 		query( p, "between( 0, 3, M ), between( 0, 5, N ), ackermann( M, N, Result )." ) shouldBe
+//  			"""	|M = 0, N = 0, Result = 1
+// 				|M = 0, N = 1, Result = 2
+// 				|M = 0, N = 2, Result = 3
+// 				|M = 0, N = 3, Result = 4
+// 				|M = 0, N = 4, Result = 5
+// 				|M = 0, N = 5, Result = 6
+// 				|M = 1, N = 0, Result = 2
+// 				|M = 1, N = 1, Result = 3
+// 				|M = 1, N = 2, Result = 4
+// 				|M = 1, N = 3, Result = 5
+// 				|M = 1, N = 4, Result = 6
+// 				|M = 1, N = 5, Result = 7
+// 				|M = 2, N = 0, Result = 3
+// 				|M = 2, N = 1, Result = 5
+// 				|M = 2, N = 2, Result = 7
+// 				|M = 2, N = 3, Result = 9
+// 				|M = 2, N = 4, Result = 11
+// 				|M = 2, N = 5, Result = 13
+// 				|M = 3, N = 0, Result = 5
+// 				|M = 3, N = 1, Result = 13
+// 				|M = 3, N = 2, Result = 29
+// 				|M = 3, N = 3, Result = 61
+// 				|M = 3, N = 4, Result = 125
+// 				|M = 3, N = 5, Result = 253
+// 				""".stripMargin.trim
+// 	}
+	
+// 	"goldbach" in
+// 	{
+// 	val p = program( """
+// 		is_prime(2).
+// 		is_prime(3).
+// 		is_prime(P) :- integer(P), P > 3, P mod 2 =\= 0, \+ has_factor(P,3).  
+// 
+// 		has_factor(N,L) :- N mod L =:= 0.
+// 		has_factor(N,L) :- L * L < N, L2 is L + 2, has_factor(N,L2).
+// 
+// 		goldbach(4,[2,2]) :- !.
+// 		goldbach(N,L) :- N mod 2 =:= 0, N > 4, goldbach(N,L,3).
+// 
+// 		goldbach(N,[P,Q],P) :- Q is N - P, is_prime(Q).
+// 		goldbach(N,L,P) :- next_prime(P,P1), P1 =< N/2, goldbach(N,L,P1).
+// 
+// 		next_prime(P,P1) :- P1 is P + 2, is_prime(P1), !.
+// 		next_prime(P,P1) :- P2 is P + 2, next_prime(P2,P1).
+// 		""" )
+// 	
+// 		query( p, "goldbach( 50, L )." ) shouldBe
+//  			"""	|L = [3, 47]
+// 				|L = [7, 43]
+// 				|L = [13, 37]
+// 				|L = [19, 31]
+// 				""".stripMargin.trim
+// 	}
+	
 	"zebra" in
 	{
 	val p = program( """

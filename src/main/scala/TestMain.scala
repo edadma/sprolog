@@ -17,8 +17,10 @@ object TestMain extends App
 	val q = Prolog.parseQuery( """ (fail -> true; fail); true """ )//(fail -> true; fail); true
 	val qc = Prolog.compileQuery( q )
 
-//  	println
-//	Prolog.listing( qc )
+// 	println
+// 	Prolog.listing( qc )
 
 	v query qc
 }
+
+///**/squareroot( 9000000, R )
