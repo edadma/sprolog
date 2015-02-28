@@ -4,7 +4,8 @@ package ca.hyperreal.sprolog
 object TestMain extends App
 {
  	val p = Prolog.parseProgram( """
-		""" )
+
+""" )
 	val db = Prolog.compileProgram( p )
 	val v = new WAM
 	
@@ -13,7 +14,7 @@ object TestMain extends App
 	v.ops = Prolog.ops
 	v.predicates = Prolog.builtins
 	
-	val q = Prolog.parseQuery( """  """ )
+	val q = Prolog.parseQuery( """ goldbach( 50, L ). """ )
 	val qc = Prolog.compileQuery( q )
 
 //  	println
