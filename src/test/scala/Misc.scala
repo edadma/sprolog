@@ -32,4 +32,17 @@ class Misc extends FreeSpec with PropertyChecks with Matchers
 	
 		query( p, "a( E )." ) shouldBe "E = a"
 	}
+	
+	"maplist" in
+	{
+	val p = program( """
+		maplist( _, [], [] ).
+		maplist( P, [X|L], [Y|M] ) :-
+			Q =.. [P, X, Y], Q, maplist( P, L, M ).
+			
+		double( A, B ) :- B is 2*A.
+		""" )
+	
+		query( p, "maplist( double, [1, 2, 3], L )." ) shouldBe "L = [2, 4, 6]"
+	}
 }

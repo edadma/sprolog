@@ -59,6 +59,7 @@ class Builtin extends FreeSpec with PropertyChecks with Matchers
 		
 		// univ 179
  		query( db, "A =.. [f, a]." ) shouldBe "A = f(a)"
+ 		query( db, "A =.. [f, B]." ) should fullyMatch regex """A = f\(H\d+\), B = H\d+"""
 		query( db, "A =.. [f]." ) shouldBe "A = f"
 		query( db, "A =.. [f(a)]." ) shouldBe "no"
 		query( db, "A =.. [1.5]." ) shouldBe "A = 1.5"

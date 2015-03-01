@@ -217,6 +217,7 @@ class WAM
 		
 		term match
 		{
+			case a: Addr => RefCell( a )
 			case AtomAST( atom ) => ConCell( atom )
 			case NumberAST( n ) => ConCell( n )
 			case StringAST( s ) => ConCell( s )
