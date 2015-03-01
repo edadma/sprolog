@@ -1,7 +1,7 @@
 S-Prolog
 ========
 
-This is a Warren Abstract Machine (WAM) based Prolog interpreter in Scala.  Currently, a large subset of the WAM instruction set is implemented.  There is no tail recursion optimization or procedure indexing for fast rule matching yet.  The specialized optimizing instructions supporting constants, lists and anonymous variables are implemented.  Most of the commonly used built-in predicates are implemented.
+S-Prolog is a Warren Abstract Machine (WAM) based Prolog interpreter in Scala.  Currently, a large subset of the WAM instruction set is implemented.  There is no tail recursion optimization or procedure indexing for fast rule matching yet.  The specialized optimizing instructions supporting constants, lists and anonymous variables are implemented.  Most of the commonly used built-in predicates are implemented.
 
 This will aim to be a subset of ISO Prolog including a standard Prolog parser using https://github.com/edadma/rtcep.
 
@@ -69,3 +69,30 @@ output:
     X = x*1 + x*1 - 0, Y = 2*x
 
     L = [2, 4, 5, 6, 7, 9]
+    
+
+## License
+
+S-Prolog is distributed under the MIT License, meaning that you are free to use it in your free or proprietary software.
+
+
+## Usage
+
+Use the following elements to use S-Prolog in your Maven project:
+
+	<repository>
+		<id>hyperreal</id>
+		<url>http://hyperreal.ca/maven2</url>
+	</repository>
+
+	<dependency>
+		<groupId>ca.hyperreal</groupId>
+		<artifactId>sprolog</artifactId>
+		<version>0.1</version>
+	</dependency>
+
+Add the following to your `build.sbt` file to use Options in your SBT project:
+
+	resolvers += "Hyperreal Repository" at "http://hyperreal.ca/maven2"
+
+	libraryDependencies += "ca.hyperreal" %% "sprolog" % "0.1"

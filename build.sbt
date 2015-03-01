@@ -9,6 +9,8 @@ version := "0.1"
 
 scalaVersion := "2.11.5"
 
+isSnapshot := true
+
 scalacOptions ++= Seq( "-deprecation", "-feature", "-language:postfixOps", "-language:implicitConversions", "-language:existentials" )
 
 incOptions := incOptions.value.withNameHashing( true )
