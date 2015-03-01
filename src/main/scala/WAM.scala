@@ -179,7 +179,6 @@ class WAM
 		}
 	
 	def read( a: Address ): AST =
-	{
 		deref( a ).read match
 		{
 			case RefCell( a: Addr ) => a
@@ -198,7 +197,6 @@ class WAM
 					case _ => ConstantAST( c )
 				}
 		}
-	}
 	
 	def write( term: AST ): Cell =
 	{
@@ -223,7 +221,7 @@ class WAM
 			case StringAST( s ) => ConCell( s )
 			case ConstantAST( c ) => ConCell( c )
 			case StructureAST( DOT, Seq(l, r) ) => LisCell( writeseq(Seq(write(l), write(r))) )
-			case StructureAST( f, args ) => StrCell( writeseq(FunCell(f, args.length) +: (for (a <- args) yield write(a))) )
+			case StructureAST( f, args ) => StrCell( writeseq(FunCell(f, args.length) +: args.map(write(_))) )
 		}
 	}
 	
@@ -232,7 +230,7 @@ class WAM
 	def display( a: AST ): String =
 	{
 		def _display( f: Symbol, args: Seq[AST] ) =
-			f.name + (for (a <- args) yield display( a )).mkString( "(", ", ", ")" )
+			f.name + (args.map( display(_) )).mkString( "(", ", ", ")" )
 			
 		def _displayPrec( prec: Int, a: AST ): String =
 			a match
