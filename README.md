@@ -93,6 +93,6 @@ Use the following elements to use S-Prolog in your Maven project:
 
 Add the following to your `build.sbt` file to use S-Prolog in your SBT project:
 
-	resolvers += "Hyperreal Repository" at "http://hyperreal.ca/maven2"
+	resolvers += "Hyperreal Repository" at "https://dl.bintray.com/edadma/maven"
 
 	libraryDependencies += "ca.hyperreal" %% "sprolog" % "0.1"
