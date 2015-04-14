@@ -82,7 +82,7 @@ Use the following elements to use S-Prolog in your Maven project:
 
 	<repository>
 		<id>hyperreal</id>
-		<url>http://hyperreal.ca/maven2</url>
+		<url>https://dl.bintray.com/edadma/maven</url>
 	</repository>
 
 	<dependency>
