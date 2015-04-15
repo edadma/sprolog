@@ -26,7 +26,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.11.5" % "test"
 
 libraryDependencies ++= Seq(
-	"org.funl-lang" %% "lia" % "0.14",
+	"ca.hyperreal" %% "lia" % "0.15",
 	"ca.hyperreal" %% "rtcep" % "0.1"
 	)
 	
