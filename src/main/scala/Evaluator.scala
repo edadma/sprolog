@@ -1,6 +1,6 @@
 package ca.hyperreal.sprolog
 
-import funl.lia.{FunctionMap, Math}
+import ca.hyperreal.lia.{FunctionMap, Math}
 
 
 class Evaluator

@@ -2,7 +2,7 @@ package ca.hyperreal.sprolog
 
 import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 
-import funl.lia.{FunctionMap, Math}
+import ca.hyperreal.lia.{FunctionMap, Math}
 
 
 class PredicateMap( evaluator: Evaluator ) extends HashMap[Indicator, Predicate]

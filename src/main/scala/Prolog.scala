@@ -5,8 +5,7 @@ import java.io.{Reader, StringReader, ByteArrayOutputStream, PrintStream}
 import collection.mutable.{ListBuffer, ArrayBuffer, HashMap, HashSet}
 
 import ca.hyperreal.rtcep._
-
-import funl.lia.{FunctionMap, Math}
+import ca.hyperreal.lia.{FunctionMap, Math}
 
 
 object Prolog
