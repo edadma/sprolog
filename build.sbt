@@ -19,7 +19,7 @@ organization := "ca.hyperreal"
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
-//resolvers += "Hyperreal Repository" at "http://hyperreal.ca/maven2"
+resolvers += "Hyperreal Repository" at "https://dl.bintray.com/edadma/maven"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
