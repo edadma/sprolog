@@ -1,11 +1,11 @@
-package ca.hyperreal.sprolog
+package xyz.hyperreal.sprolog
 
 import java.io.{Reader, StringReader, ByteArrayOutputStream, PrintStream}
 
 import collection.mutable.{ListBuffer, ArrayBuffer, HashMap, HashSet}
 
-import ca.hyperreal.rtcep._
-import ca.hyperreal.lia.{FunctionMap, Math}
+import xyz.hyperreal.rtcep._
+import xyz.hyperreal.lia.{FunctionMap, Math}
 
 
 object Prolog

@@ -1,6 +1,6 @@
-package ca.hyperreal.sprolog
+package xyz.hyperreal.sprolog
 
-import ca.hyperreal.rtcep.Position
+import xyz.hyperreal.rtcep.Position
 
 
 abstract class AST

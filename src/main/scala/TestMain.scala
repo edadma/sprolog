@@ -1,4 +1,4 @@
-package ca.hyperreal.sprolog
+package xyz.hyperreal.sprolog
 
 
 object TestMain extends App

@@ -1,4 +1,4 @@
-package ca.hyperreal
+package xyz.hyperreal
 
 
 package object sprolog

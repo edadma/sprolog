@@ -1,8 +1,8 @@
-package ca.hyperreal.sprolog
+package xyz.hyperreal.sprolog
 
 import collection.mutable.{HashMap, ArrayBuffer, Buffer, ArrayStack}
 
-import ca.hyperreal.lia.{FunctionMap, Math}
+import xyz.hyperreal.lia.{FunctionMap, Math}
 
 
 class PredicateMap( evaluator: Evaluator ) extends HashMap[Indicator, Predicate]
@@ -189,7 +189,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 		val list = w.wam.argInstantiated( 2 )
 	
 			if (isList( list ))
-				ca.hyperreal.sprolog.toList( list ) match
+				xyz.hyperreal.sprolog.toList( list ) match
 				{
 					case List( c ) =>
 						atomic( c ) && w.unify( terma, ConCell(constant(c)) )
@@ -228,7 +228,7 @@ class PrologBuiltins( evaluator: Evaluator = new Evaluator ) extends PredicateMa
 	{ w =>
 	val l = w.wam.arg( 1 )
 	
-		isList( l ) && w.unify( ConCell(ca.hyperreal.sprolog.toList(l).iterator), w.wam.addr(2) )
+		isList( l ) && w.unify( ConCell(xyz.hyperreal.sprolog.toList(l).iterator), w.wam.addr(2) )
 	}
 	
 	define( "next_", 2 )

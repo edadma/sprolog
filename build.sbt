@@ -1,11 +1,10 @@
-import AssemblyKeys._
-
-
 name := "sprolog"
 
-version := "0.1"
+version := "0.2"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.12.1"
+
+crossScalaVersions := Seq( "2.11.8" )
 
 isSnapshot := true
 
@@ -13,7 +12,7 @@ scalacOptions ++= Seq( "-deprecation", "-feature", "-language:postfixOps", "-lan
 
 incOptions := incOptions.value.withNameHashing( true )
 
-organization := "ca.hyperreal"
+organization := "xyz.hyperreal"
 
 //resolvers += Resolver.sonatypeRepo( "snapshots" )
 
@@ -21,29 +20,25 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 resolvers += "Hyperreal Repository" at "https://dl.bintray.com/edadma/maven"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
-
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.11.5" % "test"
+libraryDependencies ++= Seq(
+	"org.scalatest" %% "scalatest" % "3.0.0" % "test",
+	"org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
+)
 
 libraryDependencies ++= Seq(
-	"ca.hyperreal" %% "lia" % "0.15",
-	"ca.hyperreal" %% "rtcep" % "0.1"
+	"xyz.hyperreal" %% "lia" % "0.20",
+	"xyz.hyperreal" %% "rtcep" % "0.3"
 	)
 	
-//mainClass in (Compile, packageBin) := Some( "ca.hyperreal.myproject.Main" )
+//mainClass in (Compile, packageBin) := Some( "xyz.hyperreal.myproject.Main" )
 
-mainClass in (Compile, run) := Some( "ca.hyperreal.sprolog.TestMain" )
+mainClass in (Compile, run) := Some( "xyz.hyperreal.sprolog.TestMain" )
 
 //offline := true
 
-assemblySettings
+mainClass in assembly := Some( "xyz.hyperreal.myproject.Main" )
 
-mainClass in assembly := Some( "ca.hyperreal.myproject.Main" )
-
-jarName in assembly := name.value + "-" + version.value + ".jar"
-
-
-seq(bintraySettings:_*)
+assemblyJarName in assembly := name.value + "-" + version.value + ".jar"
 
 
 publishMavenStyle := true
